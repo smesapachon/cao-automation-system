@@ -1,6 +1,6 @@
-# CAO — Technical Service Order Automation Pipeline
+# CAO: Technical Service Order Automation Pipeline
 
-> Production-grade, event-driven data pipeline that automates the full lifecycle of hardware technical service orders — from field capture to client delivery — for **Compuservicios Alfa y Omega S.A.S.** (Bogotá, Colombia).
+Production-grade, event-driven data pipeline that automates the full lifecycle of hardware technical service orders from field capture to client delivery for **Compuservicios Alfa y Omega S.A.S.** (Bogotá, Colombia).
 
 **8+ hours/week of manual administrative work eliminated. Zero order loss since deployment.**
 
@@ -12,7 +12,7 @@
 [Field Technician]
        │
        ▼
-[clientes.html SPA] ──── Google Sheets CSV (real-time) ──► Client lookup + branch selection
+[clientes.html SPA] ════ Google Sheets CSV (real-time) ════► Client lookup + branch selection
        │
        ▼ URL params prefill
 [Fillout Form]
@@ -23,63 +23,63 @@
 │                                                             │
 │  Webhook Trigger                                            │
 │       │                                                     │
-│       ├──► Extract date → Generate monthly folder path      │
-│       ├──► Serialize raw payload → Save JSON to Drive       │
+│       ├══► Extract date → Generate monthly folder path      │
+│       ├══► Serialize raw payload → Save JSON to Drive       │
 │       │                                                     │
 │       ▼                                                     │
-│  OpenAI GPT-4o (LangChain Agent)                           │
-│  • Field extraction from unstructured form JSON             │
-│  • Spelling correction (trabajos, observaciones)            │
-│  • Schema normalization → clean structured JSON             │
+│  OpenAI GPT-4o  (LangChain Agent)                          │
+│       Field extraction from unstructured questions[] array  │
+│       Spelling correction on free-text fields               │
+│       Schema normalization → clean structured JSON          │
 │       │                                                     │
 │       ▼                                                     │
 │  Read Servicios Sheet → Generate SRV-XXX ID (sequential)   │
 │  Read Clientes Sheet  → NIT lookup                         │
 │       │                                                     │
-│       ├── Client exists? ──► Resolve CLI-XXX from sheet     │
-│       └── New client?   ──► Generate CLI-XXX → Append row  │
+│       ├══ Client exists? ══► Resolve CLI-XXX from sheet     │
+│       └══ New client?   ══► Generate CLI-XXX → Append row  │
 │                                                             │
 │       ▼                                                     │
 │  Build Final JSON (canonical schema)                        │
 │       │                                                     │
-│       ├──► Append row → Servicios Sheet                     │
-│       ├──► Append row → Raw audit Sheet                     │
-│       ├──► Search/Create PDF folder (YYYY-MM partitioning)  │
-│       ├──► Generate HTML → Convert to PDF (REST API)        │
-│       ├──► Save PDF to Drive                                │
+│       ├══► Append row to Servicios Sheet                    │
+│       ├══► Append row to Raw audit Sheet                    │
+│       ├══► Search/Create PDF folder (YYYY-MM partitioning)  │
+│       ├══► Generate HTML → Convert to PDF via REST API      │
+│       ├══► Save PDF to Drive                                │
 │       │                                                     │
 │       ▼                                                     │
-│  Send approval email + PDF → Manager (Outlook API)         │
+│  Send approval email + PDF to Manager (Outlook API)        │
 │       │                                                     │
 │       ▼                                                     │
 │  Wait/Resume node (async gate, 7-day timeout)              │
 │       │                                                     │
-│       ├── APPROVED ──► Download PDF → Send to client        │
-│       └── CORRECTION ──► Resume URL → Correction workflow   │
+│       ├══ APPROVED ══► Download PDF → Send to client        │
+│       └══ CORRECTION ══► Resume URL → Correction workflow   │
 │                                                             │
 │  Escalation: Day 3 reminder → Day 5 reminder → Day 7 close │
 │  Error routing: 16 critical nodes with auto-notifications   │
 └─────────────────────────────────────────────────────────────┘
        │
-       ▼ (on correction path)
+       ▼ (correction path)
 ┌─────────────────────────────────────────────────────────────┐
 │                 CORRECTION WORKFLOW (n8n)                    │
 │                                                             │
 │  Webhook POST /correccion-servicio                          │
 │       │                                                     │
-│       ├──► Cancel main Wait via HTTP resume URL             │
-│       ├──► Update Servicios Sheet (upsert by id_servicio)   │
-│       ├──► Regenerate HTML → PDF                            │
-│       ├──► Delete original PDF from Drive                   │
-│       ├──► Upload corrected PDF (same folder, same name)    │
-│       ├──► Send re-approval email → Manager                 │
+│       ├══► Cancel main Wait via HTTP resume URL             │
+│       ├══► Update Servicios Sheet (upsert by id_servicio)   │
+│       ├══► Regenerate HTML → PDF                            │
+│       ├══► Delete original PDF from Drive                   │
+│       ├══► Upload corrected PDF (same folder, same name)    │
+│       ├══► Send re-approval email to Manager                │
 │       ▼                                                     │
 │  Wait/Resume (72h timeout)                                  │
 │       │                                                     │
-│       └── APPROVED ──► Download PDF → Send to client        │
+│       └══ APPROVED ══► Download PDF → Send to client        │
 └─────────────────────────────────────────────────────────────┘
        │
-[correccion.html SPA] ──── URL params prefill ──► Editable form → POST corrections
+[correccion.html SPA] ════ URL params prefill ════► Editable form → POST corrections
 ```
 
 ---
@@ -122,22 +122,28 @@ timestamp | id_servicio | datos_raw (full JSON snapshot)
 ## Key Engineering Decisions
 
 **GPT-4o as ETL transformation layer**
-Raw Fillout form submissions arrive as unstructured `questions[]` arrays with inconsistent casing, spelling errors, and mixed formats. Instead of brittle field-by-field parsing, a LangChain agent with GPT-4o receives the full raw JSON and returns a validated canonical schema — including proper capitalization of equipment names, date formatting (`DD/MM/YYYY`), time formatting (`HH:MM AM/PM`), and spelling correction across all free-text fields.
+
+Raw Fillout form submissions arrive as unstructured `questions[]` arrays with inconsistent casing, spelling errors, and mixed date and time formats. Instead of brittle field-by-field parsing logic, a LangChain agent powered by GPT-4o receives the full raw JSON and returns a validated canonical schema every time, including proper capitalization of equipment names, date formatting to `DD/MM/YYYY`, time formatting to `HH:MM AM/PM`, and spelling correction across all free-text fields.
 
 **Async approval gate with Wait/Resume**
-The main workflow pauses execution indefinitely after sending the approval email. The manager clicks a link in the email to resume the exact workflow instance via n8n's webhook resume mechanism. This enables a stateful, human-in-the-loop approval step without polling or external state management. Automatic escalation fires at Day 3 and Day 5 if no action is taken.
+
+The main workflow pauses execution after sending the approval email and resumes only when the manager clicks the approval link, which triggers a webhook resume call tied to that specific workflow instance. This achieves a stateful human-in-the-loop checkpoint without polling, cron jobs, or external state management. Automatic escalation notifications fire at Day 3 and Day 5 if no action is taken.
 
 **CORS proxy via intermediary webhook**
-n8n Wait/Resume URLs cannot be called directly from the browser due to cross-origin restrictions. The correction SPA sends its resume call to a dedicated n8n webhook (`/iniciar-correccion`) that acts as a server-side proxy — forwarding the resume signal to the paused main workflow instance while simultaneously redirecting the user to the correction form.
+
+n8n Wait/Resume URLs cannot be called directly from the browser due to cross-origin restrictions. The correction SPA routes its resume call through a dedicated n8n webhook (`/iniciar-correccion`) that acts as a server-side proxy, forwarding the resume signal to the paused main workflow instance while simultaneously redirecting the user to the correction form with the order data encoded in the URL.
 
 **Sequential ID generation with sheet as source of truth**
-`SRV-XXX` and `CLI-XXX` IDs are generated by reading the full Servicios and Clientes sheets at runtime, finding the current maximum, and incrementing. No external sequence generator or database — Google Sheets is the single source of truth.
+
+`SRV-XXX` and `CLI-XXX` IDs are generated at runtime by reading the full Servicios and Clientes sheets, finding the current maximum, and incrementing. No external sequence generator or database required. Google Sheets is the single source of truth for both ID sequences.
 
 **Stateless SPAs with URL parameter prefill**
-Both frontend apps are fully stateless. All context — client data, order data, resume URLs — is passed via URL parameters. No backend session, no cookies, no server-side rendering. Instant deployment on GitHub Pages with zero infrastructure cost.
+
+Both frontend applications are fully stateless. All context including client data, order data, and resume URLs is passed via URL parameters. No backend session management, no cookies, and no server-side rendering. Both apps are deployed instantly on GitHub Pages with zero infrastructure cost.
 
 **Document lifecycle management**
-On correction: the original PDF is located by `id_servicio` query, deleted from Drive, and replaced with the regenerated version under the same filename and folder. Full traceability is maintained through the Raw audit sheet.
+
+On correction, the original PDF is located in Drive by querying the `id_servicio` value, deleted, and replaced with the regenerated version under the same filename and folder path. Full record traceability is maintained through the Raw audit sheet, which stores a complete JSON snapshot of every record at write time.
 
 ---
 
@@ -156,44 +162,34 @@ On correction: the original PDF is located by `id_servicio` query, deleted from 
 
 ## Error Handling
 
-Every critical node in the pipeline has a dedicated error route:
-
-- **16 Stop-and-Error nodes** halt execution on unrecoverable failures
-- **16 Outlook notification nodes** fire automatically on any node failure, including node name, error message, and timestamp
-- Error coverage spans: AI processor, Sheets read/write, Drive operations, PDF generation, email delivery
+Every critical node in the pipeline has a dedicated error route. 16 Stop-and-Error nodes halt execution on unrecoverable failures. 16 Outlook notification nodes fire automatically on any node failure, each including the node name, error message, and timestamp. Error coverage spans the AI processor, all Sheets read and write operations, Drive operations, PDF generation, and email delivery.
 
 ---
 
 ## Frontend SPAs
 
 ### `clientes.html` — Client Lookup
-- Fetches client database in real time via Google Sheets CSV public export
-- Fuzzy search by name or NIT with regex-highlighted matches
-- Multi-branch support: auto-selects single branch, renders selector for multiple
-- Builds Fillout form URL with prefilled query params on open
-- Stack: Vanilla JS (ES6), CSS custom properties, DM Sans / Bebas Neue
+
+Fetches the client database in real time via Google Sheets CSV public export. Implements fuzzy search by name or NIT with regex-highlighted matches. Handles multi-branch clients by auto-selecting when a single branch exists or rendering a selector when multiple branches are found. Builds the Fillout form URL with prefilled query parameters on open. Built with Vanilla JS (ES6), CSS custom properties, DM Sans and Bebas Neue.
 
 ### `correccion.html` — Order Correction
-- Receives full service order as URL-encoded JSON via query params
-- Renders editable form: header, client data, equipment table (dynamic rows), service requests, work performed, parts, observations
-- Field-level change tracking with visual diff indicators
-- On submit: POST to n8n correction webhook + fires resume URL to unblock main workflow
-- Stack: Vanilla JS (ES6), IBM Plex Sans / IBM Plex Mono
+
+Receives the full service order as URL-encoded JSON via query parameters. Renders a fully editable form covering header fields, client data, a dynamic equipment table, service request rows, work performed, parts and observations. Tracks field-level changes with visual diff indicators. On submit, POSTs corrections to the n8n correction webhook and fires the resume URL to unblock the paused main workflow. Built with Vanilla JS (ES6), IBM Plex Sans and IBM Plex Mono.
 
 ---
 
 ## Stack
 
 ```
-Orchestration  │ n8n (cloud, event-driven)
-AI / ETL       │ OpenAI GPT-4o · LangChain Agent
-Data Store     │ Google Sheets API (append / upsert / read)
-Storage        │ Google Drive API (partitioned by YYYY-MM)
-Notifications  │ Microsoft Outlook API
-PDF            │ html2pdfrocket REST API
-Frontend       │ HTML5 · CSS3 · JavaScript ES6
-Hosting        │ GitHub Pages · Cloudinary CDN
-Auth           │ OAuth2 (Google Workspace · Microsoft 365)
+Orchestration   n8n (cloud, event-driven)
+AI / ETL        OpenAI GPT-4o · LangChain Agent
+Data Store      Google Sheets API (append / upsert / read)
+Storage         Google Drive API (partitioned by YYYY-MM)
+Notifications   Microsoft Outlook API
+PDF             html2pdfrocket REST API
+Frontend        HTML5 · CSS3 · JavaScript ES6
+Hosting         GitHub Pages · Cloudinary CDN
+Auth            OAuth2 (Google Workspace · Microsoft 365)
 ```
 
 ---
@@ -213,5 +209,6 @@ Auth           │ OAuth2 (Google Workspace · Microsoft 365)
 
 ## Author
 
-**Santiago Mesa Pachón** — Data Engineer & AI Automation  
+**Santiago Mesa Pachón** — Data Engineer & AI Automation
+
 [linkedin.com/in/santiagomesapachon](https://www.linkedin.com/in/santiagomesapachon) · Bogotá, Colombia
