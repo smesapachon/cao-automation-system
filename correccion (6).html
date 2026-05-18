@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corrección de Servicio — CAO</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f2ee;
+    --surface: #ffffff;
+    --border: #d0ccc4;
+    --border-strong: #a09890;
+    --accent: #c0392b;
+    --accent-dark: #922b21;
+    --text: #1a1714;
+    --text-muted: #6b6560;
+    --tag-bg: #1a1714;
+    --tag-text: #f4f2ee;
+    --input-bg: #faf9f7;
+    --success: #1e6b3c;
+    --warning: #b7770d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body { font-family: 'IBM Plex Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 0; }
+
+  .topbar { background: var(--tag-bg); color: var(--tag-text); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; border-bottom: 3px solid var(--accent); }
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+  .topbar-logo { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; letter-spacing: 2px; color: var(--tag-text); opacity: 0.7; }
+  .topbar-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.2); }
+  .topbar-title { font-size: 14px; font-weight: 500; color: var(--tag-text); }
+  .srv-badge { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: var(--accent); color: white; padding: 3px 10px; border-radius: 2px; font-weight: 600; letter-spacing: 1px; }
+
+  .main { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  .section { background: var(--surface); border: 1px solid var(--border); margin-bottom: 16px; border-radius: 4px; overflow: hidden; animation: fadeUp 0.4s ease both; }
+  .section:nth-child(1) { animation-delay: 0.05s; }
+  .section:nth-child(2) { animation-delay: 0.1s; }
+  .section:nth-child(3) { animation-delay: 0.15s; }
+  .section:nth-child(4) { animation-delay: 0.2s; }
+  .section:nth-child(5) { animation-delay: 0.25s; }
+  .section:nth-child(6) { animation-delay: 0.3s; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section-header { background: var(--tag-bg); color: var(--tag-text); padding: 10px 16px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .section-header .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; flex-shrink: 0; }
+  .section-body { padding: 20px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); }
+  .field input, .field textarea, .field select { background: var(--input-bg); border: 1px solid var(--border); border-radius: 3px; padding: 9px 12px; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; color: var(--text); transition: border-color 0.15s, box-shadow 0.15s; width: 100%; -webkit-appearance: none; }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(192,57,43,0.1); background: #fff; }
+  .field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  .field input[readonly] { background: #f0ede8; color: var(--text-muted); cursor: default; border-color: transparent; }
+
+  .table-wrapper { overflow-x: auto; }
+
+  table.editable-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.editable-table thead tr { background: var(--tag-bg); color: var(--tag-text); }
+  table.editable-table th { padding: 9px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; text-align: left; white-space: nowrap; }
+  table.editable-table td { padding: 6px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  table.editable-table tr:last-child td { border-bottom: none; }
+  table.editable-table tr:hover td { background: #faf9f7; }
+  table.editable-table td input { width: 100%; border: 1px solid transparent; background: transparent; padding: 5px 7px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: var(--text); border-radius: 2px; transition: border-color 0.15s, background 0.15s; }
+  table.editable-table td input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 2px rgba(192,57,43,0.1); }
+
+  .btn-add-row, .btn-del-row { border: none; cursor: pointer; border-radius: 2px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; transition: all 0.15s; }
+  .btn-add-row { background: var(--tag-bg); color: var(--tag-text); padding: 7px 14px; margin-top: 10px; letter-spacing: 1px; }
+  .btn-add-row:hover { background: #333; }
+  .btn-del-row { background: transparent; color: #c0392b; padding: 4px 8px; font-size: 16px; line-height: 1; }
+  .btn-del-row:hover { background: #fde8e6; }
+
+  table.solicitud-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.solicitud-table thead tr { background: var(--tag-bg); color: var(--tag-text); }
+  table.solicitud-table th { padding: 9px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; text-align: left; }
+  table.solicitud-table td { padding: 6px 6px; border-bottom: 1px solid var(--border); }
+  table.solicitud-table tr:last-child td { border-bottom: none; }
+  table.solicitud-table td input { width: 100%; border: 1px solid transparent; background: transparent; padding: 6px 8px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: var(--text); border-radius: 2px; transition: border-color 0.15s, background 0.15s; }
+  table.solicitud-table td input:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 2px rgba(192,57,43,0.1); }
+
+  .actions-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 2px solid var(--border-strong); padding: 14px 20px; display: flex; gap: 12px; justify-content: flex-end; align-items: center; z-index: 200; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); }
+  .btn-cancel { background: transparent; border: 1px solid var(--border-strong); color: var(--text-muted); padding: 10px 20px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 1px; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+  .btn-cancel:hover { background: var(--bg); color: var(--text); }
+  .btn-save { background: var(--accent); border: none; color: white; padding: 10px 28px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 1.5px; border-radius: 3px; cursor: pointer; transition: all 0.15s; text-transform: uppercase; }
+  .btn-save:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(192,57,43,0.3); }
+  .btn-save:active { transform: translateY(0); }
+  .btn-save:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .toast { position: fixed; top: 70px; right: 20px; padding: 12px 20px; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; letter-spacing: 1px; z-index: 999; transform: translateX(120%); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); max-width: 320px; }
+  .toast.show { transform: translateX(0); }
+  .toast.success { background: var(--success); color: white; }
+  .toast.error { background: var(--accent); color: white; }
+
+  .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(26,23,20,0.6); z-index: 500; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+  .loading-overlay.active { display: flex; }
+  .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { color: white; font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 1px; }
+
+  .no-data { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .no-data h2 { font-family: 'IBM Plex Mono', monospace; font-size: 16px; margin-bottom: 8px; color: var(--text); }
+  .no-data p { font-size: 14px; line-height: 1.6; }
+
+  .field input.changed, .field textarea.changed { border-color: var(--warning) !important; background: #fffbf0 !important; }
+  .changes-count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--warning); font-weight: 600; padding: 4px 10px; background: #fffbf0; border: 1px solid var(--warning); border-radius: 2px; display: none; }
+  .changes-count.visible { display: inline-block; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-logo">CAO</span>
+    <div class="topbar-divider"></div>
+    <span class="topbar-title">Corrección de Reporte</span>
+  </div>
+  <span class="srv-badge" id="badge-id">—</span>
+</div>
+
+<div class="main" id="app">
+  <div class="no-data" id="no-data-msg" style="display:none">
+    <h2>Sin datos</h2>
+    <p>Esta página debe abrirse desde el enlace<br>del correo de aprobación.</p>
+  </div>
+</div>
+
+<div class="actions-bar" id="actions-bar" style="display:none">
+  <span class="changes-count" id="changes-count">0 cambios</span>
+  <button class="btn-cancel" onclick="window.close()">Cancelar</button>
+  <button class="btn-save" id="btn-save" onclick="guardarCorrecciones()">GUARDAR Y REENVIAR</button>
+</div>
+
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Enviando correcciones...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Replace with your n8n correction webhook URL
+const WEBHOOK_URL = 'YOUR_N8N_CORRECTION_WEBHOOK_URL';
+
+let originalData = {};
+let RESUME_URL = null;
+
+function getParams() {
+  const search = window.location.search.substring(1);
+  if (!search) return {};
+  try {
+    const resumeMatch = search.match(/[?&]resumeUrl=([^&]*(?:%[0-9A-Fa-f]{2}[^&]*)*)/);
+    if (resumeMatch) RESUME_URL = decodeURIComponent(resumeMatch[1]);
+
+    const dataIndex = search.indexOf('data=');
+    if (dataIndex !== -1) {
+      let raw = search.substring(dataIndex + 5);
+      const resumeIndex = raw.indexOf('&resumeUrl=');
+      if (resumeIndex !== -1) raw = raw.substring(0, resumeIndex);
+      const decoded = decodeURIComponent(raw).replace(/\+/g, ' ');
+      return JSON.parse(decoded);
+    }
+    return {};
+  } catch(e) { return {}; }
+}
+
+function val(v) { return v || ''; }
+
+function buildForm(data) {
+  originalData = JSON.parse(JSON.stringify(data));
+  window._id_cliente = data.id_cliente || '';
+  document.getElementById('badge-id').textContent = data.id_servicio || '—';
+  document.getElementById('actions-bar').style.display = 'flex';
+
+  let equipos = [];
+  let solicitudes = [];
+  try { equipos = typeof data.equipos_intervenidos === 'string' ? JSON.parse(data.equipos_intervenidos) : (data.equipos_intervenidos || []); } catch(e) { equipos = []; }
+  try { solicitudes = typeof data.solicitud_servicio === 'string' ? JSON.parse(data.solicitud_servicio) : (data.solicitud_servicio || []); } catch(e) { solicitudes = []; }
+
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="section">
+      <div class="section-header"><span class="dot"></span>Encabezado del Servicio</div>
+      <div class="section-body">
+        <div class="grid-4">
+          <div class="field"><label>Orden No.</label><input type="text" id="id_servicio" value="${val(data.id_servicio)}" readonly></div>
+          <div class="field"><label>Fecha</label><input type="text" id="fecha" value="${val(data.fecha)}" placeholder="DD/MM/YYYY"></div>
+          <div class="field"><label>Hora Inicio</label><input type="text" id="hora_inicio" value="${val(data.hora_inicio)}" placeholder="HH:MM AM/PM"></div>
+          <div class="field"><label>Hora Fin</label><input type="text" id="hora_fin" value="${val(data.hora_fin)}" placeholder="HH:MM AM/PM"></div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="field"><label>Técnico</label><input type="text" id="tecnico" value="${val(data.tecnico)}"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><span class="dot"></span>Datos del Cliente</div>
+      <div class="section-body">
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="field"><label>Cliente</label><input type="text" id="nombre_cliente" value="${val(data.nombre_cliente)}"></div>
+          <div class="field"><label>Sucursal</label><input type="text" id="sucursal" value="${val(data.sucursal)}"></div>
+        </div>
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="field"><label>NIT / Cédula</label><input type="text" id="nit_cedula" value="${val(data.nit_cedula)}"></div>
+          <div class="field"><label>Teléfono</label><input type="text" id="telefono" value="${val(data.telefono)}"></div>
+        </div>
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="field"><label>Dirección</label><input type="text" id="direccion" value="${val(data.direccion)}"></div>
+          <div class="field"><label>Correo</label><input type="email" id="correo_cliente" value="${val(data.correo_cliente)}"></div>
+        </div>
+        <div class="field"><label>Contacto</label><input type="text" id="contacto" value="${val(data.contacto)}"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><span class="dot"></span>Solicitud de Servicio</div>
+      <div class="section-body">
+        <div class="table-wrapper">
+          <table class="solicitud-table" id="tabla-solicitud">
+            <thead><tr><th>Descripción</th><th style="width:40px"></th></tr></thead>
+            <tbody id="tbody-solicitud">
+              ${solicitudes.length > 0
+                ? solicitudes.map(s => `<tr><td><input type="text" value="${val(s.descripcion || s.Descripción || '')}" placeholder="Descripción"></td><td><button class="btn-del-row" onclick="delSolicitud(this)">×</button></td></tr>`).join('')
+                : `<tr><td><input type="text" value="" placeholder="Descripción"></td><td><button class="btn-del-row" onclick="delSolicitud(this)">×</button></td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+        <button class="btn-add-row" onclick="addSolicitud()">+ AGREGAR FILA</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><span class="dot"></span>Equipos Intervenidos</div>
+      <div class="section-body">
+        <div class="table-wrapper">
+          <table class="editable-table" id="tabla-equipos">
+            <thead><tr><th>Equipo</th><th>Marca</th><th>Modelo</th><th>Serial</th><th>Activo</th><th>Usuario</th><th style="width:40px"></th></tr></thead>
+            <tbody id="tbody-equipos">
+              ${equipos.length > 0
+                ? equipos.map(eq => `<tr><td><input type="text" value="${val(eq.equipo)}"></td><td><input type="text" value="${val(eq.marca)}"></td><td><input type="text" value="${val(eq.modelo)}"></td><td><input type="text" value="${val(eq.serial)}"></td><td><input type="text" value="${val(eq.activo)}"></td><td><input type="text" value="${val(eq.usuario)}"></td><td><button class="btn-del-row" onclick="delEquipo(this)">×</button></td></tr>`).join('')
+                : `<tr><td><input type="text" placeholder="Equipo"></td><td><input type="text" placeholder="Marca"></td><td><input type="text" placeholder="Modelo"></td><td><input type="text" placeholder="Serial"></td><td><input type="text" placeholder="Activo"></td><td><input type="text" placeholder="Usuario"></td><td><button class="btn-del-row" onclick="delEquipo(this)">×</button></td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+        <button class="btn-add-row" onclick="addEquipo()">+ AGREGAR EQUIPO</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><span class="dot"></span>Trabajos Realizados</div>
+      <div class="section-body">
+        <div class="field"><textarea id="trabajos_realizados" rows="4">${val(data.trabajos_realizados)}</textarea></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><span class="dot"></span>Repuestos, Suministros y Observaciones</div>
+      <div class="section-body">
+        <div class="grid-2">
+          <div class="field"><label>Repuestos y Suministros</label><textarea id="repuestos_suministros" rows="3">${val(data.repuestos_suministros)}</textarea></div>
+          <div class="field"><label>Observaciones</label><textarea id="observaciones" rows="3">${val(data.observaciones)}</textarea></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.querySelectorAll('input:not([readonly]), textarea').forEach(el => {
+    el.addEventListener('input', trackChange);
+  });
+}
+
+function trackChange(e) {
+  const el = e.target;
+  el.classList.add('changed');
+  const changed = document.querySelectorAll('input.changed, textarea.changed').length;
+  const badge = document.getElementById('changes-count');
+  badge.classList.add('visible');
+  badge.textContent = `${changed} campo(s) modificado(s)`;
+}
+
+function addEquipo() {
+  const tbody = document.getElementById('tbody-equipos');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="text" placeholder="Equipo"></td><td><input type="text" placeholder="Marca"></td><td><input type="text" placeholder="Modelo"></td><td><input type="text" placeholder="Serial"></td><td><input type="text" placeholder="Activo"></td><td><input type="text" placeholder="Usuario"></td><td><button class="btn-del-row" onclick="delEquipo(this)">×</button></td>`;
+  tbody.appendChild(tr);
+  tr.querySelector('input').focus();
+}
+
+function delEquipo(btn) {
+  const tbody = document.getElementById('tbody-equipos');
+  if (tbody.rows.length > 1) btn.closest('tr').remove();
+}
+
+function addSolicitud() {
+  const tbody = document.getElementById('tbody-solicitud');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input type="text" placeholder="Descripción"></td><td><button class="btn-del-row" onclick="delSolicitud(this)">×</button></td>`;
+  tbody.appendChild(tr);
+  tr.querySelector('input').focus();
+}
+
+function delSolicitud(btn) {
+  const tbody = document.getElementById('tbody-solicitud');
+  if (tbody.rows.length > 1) btn.closest('tr').remove();
+}
+
+function recopilarDatos() {
+  const equipos = [];
+  document.querySelectorAll('#tbody-equipos tr').forEach(tr => {
+    const inputs = tr.querySelectorAll('input');
+    if (inputs[0].value.trim()) {
+      equipos.push({ equipo: inputs[0].value.trim(), marca: inputs[1].value.trim(), modelo: inputs[2].value.trim(), serial: inputs[3].value.trim(), activo: inputs[4].value.trim(), usuario: inputs[5].value.trim() });
+    }
+  });
+
+  const solicitudes = [];
+  document.querySelectorAll('#tbody-solicitud tr').forEach(tr => {
+    const input = tr.querySelector('input');
+    if (input && input.value.trim()) solicitudes.push({ descripcion: input.value.trim() });
+  });
+
+  return {
+    id_servicio: document.getElementById('id_servicio').value,
+    fecha: document.getElementById('fecha').value,
+    hora_inicio: document.getElementById('hora_inicio').value,
+    hora_fin: document.getElementById('hora_fin').value,
+    tecnico: document.getElementById('tecnico').value,
+    nombre_cliente: document.getElementById('nombre_cliente').value,
+    sucursal: document.getElementById('sucursal').value,
+    nit_cedula: document.getElementById('nit_cedula').value,
+    telefono: document.getElementById('telefono').value,
+    direccion: document.getElementById('direccion').value,
+    correo_cliente: document.getElementById('correo_cliente').value,
+    contacto: document.getElementById('contacto').value,
+    trabajos_realizados: document.getElementById('trabajos_realizados').value,
+    repuestos_suministros: document.getElementById('repuestos_suministros').value,
+    observaciones: document.getElementById('observaciones').value,
+    equipos_intervenidos: JSON.stringify(equipos),
+    solicitud_servicio: JSON.stringify(solicitudes),
+    correo_envio: document.getElementById('correo_cliente').value,
+    id_cliente: window._id_cliente || '',
+    resume_url_principal: RESUME_URL || ''
+  };
+}
+
+async function guardarCorrecciones() {
+  const btn = document.getElementById('btn-save');
+  const loading = document.getElementById('loading');
+  btn.disabled = true;
+  loading.classList.add('active');
+
+  const datos = recopilarDatos();
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    if (!res.ok) throw new Error('Error ' + res.status);
+
+    if (RESUME_URL) {
+      try {
+        await fetch(RESUME_URL + '?action=corregir', { method: 'GET', mode: 'no-cors' });
+      } catch(e) {}
+    }
+
+    loading.classList.remove('active');
+    showToast('Correcciones enviadas. Se regenerará el PDF y se reenviará al gerente.', 'success');
+    btn.textContent = 'ENVIADO ✓';
+    btn.style.background = '#1e6b3c';
+    setTimeout(() => { window.close(); }, 3500);
+
+  } catch(err) {
+    loading.classList.remove('active');
+    btn.disabled = false;
+    showToast('Error al enviar. Intenta nuevamente.', 'error');
+  }
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type}`;
+  setTimeout(() => t.classList.add('show'), 50);
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const params = getParams();
+  if (!params || !params.id_servicio) {
+    document.getElementById('no-data-msg').style.display = 'block';
+    return;
+  }
+  buildForm(params);
+});
+</script>
+</body>
+</html>

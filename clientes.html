@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAO | Buscar Cliente</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black:    #111118;
+      --gray1:    #f5f5f8;
+      --gray2:    #ebebf0;
+      --gray3:    #d0d0da;
+      --gray4:    #8888a0;
+      --light:    #222230;
+      --white:    #ffffff;
+      --magenta:  #e0007a;
+      --magenta2: #ff2d96;
+      --cyan:     #00b8d4;
+      --cyan2:    #0099b8;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--white);
+      color: var(--light);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 32px;
+      background: var(--gray1);
+      border-bottom: 2px solid var(--magenta);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header img { height: 42px; object-fit: contain; }
+    header .sep { width: 1px; height: 32px; background: var(--gray3); }
+    header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--light); }
+    header .badge { margin-left: auto; background: var(--magenta); color: var(--white); font-size: 11px; font-weight: 600; letter-spacing: 1px; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; }
+
+    main { max-width: 680px; margin: 48px auto; padding: 0 24px 80px; }
+
+    .section-title { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 3px; color: var(--gray4); text-transform: uppercase; margin-bottom: 10px; }
+
+    .search-wrap { position: relative; margin-bottom: 6px; }
+    .search-wrap input { width: 100%; background: var(--gray1); border: 1.5px solid var(--gray3); border-radius: 8px; color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 16px; padding: 14px 48px 14px 16px; outline: none; transition: border-color .2s; }
+    .search-wrap input::placeholder { color: var(--gray4); }
+    .search-wrap input:focus { border-color: var(--magenta); }
+    .search-wrap .icon-search { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--gray4); pointer-events: none; }
+    .search-hint { font-size: 12px; color: var(--gray4); margin-bottom: 20px; }
+
+    #resultados { display: none; flex-direction: column; gap: 6px; margin-bottom: 28px; max-height: 280px; overflow-y: auto; }
+    #resultados.visible { display: flex; }
+
+    .resultado-item { background: var(--gray1); border: 1.5px solid var(--gray2); border-radius: 8px; padding: 12px 16px; cursor: pointer; transition: border-color .15s, background .15s; display: flex; justify-content: space-between; align-items: center; }
+    .resultado-item:hover, .resultado-item.selected { border-color: var(--magenta); background: #fce8f3; }
+    .resultado-nombre { font-weight: 500; font-size: 14px; color: var(--light); }
+    .resultado-nit { font-size: 12px; color: var(--gray4); margin-top: 2px; }
+    .resultado-arrow { color: var(--magenta); opacity: 0; transition: opacity .15s; font-size: 18px; }
+    .resultado-item:hover .resultado-arrow, .resultado-item.selected .resultado-arrow { opacity: 1; }
+
+    #card-cliente { display: none; background: var(--gray1); border: 1.5px solid var(--magenta); border-radius: 10px; padding: 20px; margin-bottom: 28px; animation: fadeIn .2s ease; }
+    #card-cliente.visible { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .card-nombre { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 1px; color: var(--light); }
+    .card-nit { font-size: 12px; color: var(--gray4); margin-top: 2px; }
+    .btn-cambiar { background: none; border: 1px solid var(--gray3); color: var(--gray4); font-family: 'DM Sans', sans-serif; font-size: 12px; padding: 5px 10px; border-radius: 5px; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    .btn-cambiar:hover { border-color: var(--magenta); color: var(--magenta); }
+    .card-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .info-item label { display: block; font-size: 10px; letter-spacing: 1.5px; color: var(--gray4); text-transform: uppercase; margin-bottom: 3px; }
+    .info-item span { font-size: 13px; color: var(--light); }
+
+    #bloque-sucursal { display: none; }
+    #bloque-sucursal.visible { display: block; }
+    .sucursales-grid { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .sucursal-btn { background: var(--gray2); border: 1.5px solid var(--gray3); border-radius: 7px; color: var(--light); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 11px 14px; text-align: left; cursor: pointer; transition: all .15s; display: flex; justify-content: space-between; align-items: center; }
+    .sucursal-btn:hover, .sucursal-btn.active { border-color: var(--cyan2); background: #e6f7fa; color: var(--light); }
+    .sucursal-btn .suc-dir { font-size: 11px; color: var(--gray4); margin-top: 2px; }
+    .sucursal-btn .suc-check { color: var(--cyan); font-size: 18px; opacity: 0; transition: opacity .15s; }
+    .sucursal-btn.active .suc-check { opacity: 1; }
+
+    #btn-abrir { display: none; width: 100%; background: var(--magenta); color: var(--white); font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; padding: 18px; border: none; border-radius: 8px; cursor: pointer; transition: background .15s, transform .1s; margin-bottom: 16px; }
+    #btn-abrir.visible { display: block; }
+    #btn-abrir:hover { background: var(--magenta2); transform: translateY(-1px); }
+    #btn-abrir:active { transform: translateY(0); }
+
+    .btn-nuevo { display: block; width: 100%; background: none; border: 1.5px solid var(--gray3); color: var(--gray4); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; padding: 14px; border-radius: 8px; cursor: pointer; text-align: center; transition: all .15s; margin-top: 8px; }
+    .btn-nuevo:hover { border-color: var(--light); color: var(--white); }
+
+    #estado { text-align: center; padding: 40px 0; color: var(--gray4); font-size: 14px; }
+    .spinner { width: 28px; height: 28px; border: 2px solid var(--gray3); border-top-color: var(--magenta); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .no-results { text-align: center; padding: 24px; color: var(--gray4); font-size: 13px; }
+    #resultados::-webkit-scrollbar { width: 4px; }
+    #resultados::-webkit-scrollbar-track { background: transparent; }
+    #resultados::-webkit-scrollbar-thumb { background: var(--gray3); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="YOUR_LOGO_URL" alt="CAO Logo" onerror="this.style.display='none'">
+  <div class="sep"></div>
+  <h1>Buscar Cliente</h1>
+  <span class="badge">Técnicos</span>
+</header>
+
+<main>
+  <div id="estado">
+    <div class="spinner"></div>
+    Cargando clientes...
+  </div>
+
+  <div id="contenido" style="display:none">
+    <p class="section-title">Cliente</p>
+
+    <div class="search-wrap">
+      <input type="text" id="buscar" placeholder="Nombre o NIT del cliente..." autocomplete="off">
+      <svg class="icon-search" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    </div>
+    <p class="search-hint">Escribe al menos 2 caracteres para buscar</p>
+
+    <div id="resultados"></div>
+
+    <div id="card-cliente">
+      <div class="card-header">
+        <div>
+          <div class="card-nombre" id="c-nombre"></div>
+          <div class="card-nit" id="c-nit"></div>
+        </div>
+        <button class="btn-cambiar" onclick="limpiarSeleccion()">✕ Cambiar</button>
+      </div>
+      <div class="card-info">
+        <div class="info-item"><label>Teléfono</label><span id="c-tel"></span></div>
+        <div class="info-item"><label>Correo</label><span id="c-correo"></span></div>
+      </div>
+      <div id="bloque-sucursal">
+        <p class="section-title" style="margin-bottom:8px">Selecciona la sucursal</p>
+        <div class="sucursales-grid" id="lista-sucursales"></div>
+      </div>
+    </div>
+
+    <button id="btn-abrir" onclick="abrirFormulario()">➜ Abrir Formulario</button>
+    <button class="btn-nuevo" onclick="abrirNuevo()">+ Cliente nuevo (formulario vacío)</button>
+  </div>
+</main>
+
+<script>
+  // Replace with your Google Sheets CSV export URL
+  const SHEET_CSV = 'YOUR_GOOGLE_SHEETS_CSV_URL';
+
+  // Replace with your Fillout form URL
+  const FILLOUT_URL = 'YOUR_FILLOUT_FORM_URL';
+
+  let todosClientes = [];
+  let clientesUnicos = [];
+  let clienteSeleccionado = null;
+  let sucursalSeleccionada = null;
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    return lines.slice(1).map(line => {
+      const cols = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      cols.push(cur.trim());
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = (cols[i] || '').replace(/^"|"$/g, '').trim());
+      return obj;
+    }).filter(r => r.nombre);
+  }
+
+  async function cargarClientes() {
+    try {
+      const res = await fetch(SHEET_CSV);
+      if (!res.ok) throw new Error('Error al cargar');
+      const text = await res.text();
+      todosClientes = parseCSV(text);
+
+      const mapa = {};
+      todosClientes.forEach(r => {
+        const key = r.nit_cedula;
+        if (!mapa[key]) mapa[key] = { ...r, sucursales: [] };
+        mapa[key].sucursales.push({ sucursal: r.sucursal, direccion: r.direccion });
+      });
+      clientesUnicos = Object.values(mapa);
+
+      document.getElementById('estado').style.display = 'none';
+      document.getElementById('contenido').style.display = 'block';
+      document.getElementById('buscar').focus();
+    } catch (e) {
+      document.getElementById('estado').innerHTML =
+        '<p style="color:#e0007a">⚠️ No se pudieron cargar los clientes.<br>Verifica tu conexión e intenta de nuevo.</p>';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    cargarClientes();
+
+    document.getElementById('buscar').addEventListener('input', function() {
+      const q = this.value.trim().toLowerCase();
+      const caja = document.getElementById('resultados');
+
+      if (q.length < 2) { caja.innerHTML = ''; caja.classList.remove('visible'); return; }
+
+      const matches = clientesUnicos.filter(c =>
+        c.nombre.toLowerCase().includes(q) || c.nit_cedula.toLowerCase().includes(q)
+      ).slice(0, 8);
+
+      if (matches.length === 0) {
+        caja.innerHTML = '<div class="no-results">Sin resultados para "<b>' + q + '</b>"</div>';
+        caja.classList.add('visible');
+        return;
+      }
+
+      caja.innerHTML = matches.map((c) => `
+        <div class="resultado-item" onclick="seleccionarCliente('${c.nit_cedula}')">
+          <div>
+            <div class="resultado-nombre">${resaltar(c.nombre, q)}</div>
+            <div class="resultado-nit">NIT: ${resaltar(c.nit_cedula, q)}</div>
+          </div>
+          <span class="resultado-arrow">›</span>
+        </div>
+      `).join('');
+      caja.classList.add('visible');
+    });
+  });
+
+  function resaltar(texto, q) {
+    const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return texto.replace(re, '<mark style="background:var(--magenta);color:#fff;border-radius:2px;padding:0 2px">$1</mark>');
+  }
+
+  function seleccionarCliente(nit) {
+    const cliente = clientesUnicos.find(c => c.nit_cedula === nit);
+    if (!cliente) return;
+
+    clienteSeleccionado = cliente;
+    sucursalSeleccionada = null;
+
+    document.getElementById('resultados').classList.remove('visible');
+    document.getElementById('buscar').value = cliente.nombre;
+    document.getElementById('c-nombre').textContent = cliente.nombre;
+    document.getElementById('c-nit').textContent = 'NIT: ' + cliente.nit_cedula;
+    document.getElementById('c-tel').textContent = cliente.telefono;
+    document.getElementById('c-correo').textContent = cliente.correo;
+    document.getElementById('card-cliente').classList.add('visible');
+
+    const bloque = document.getElementById('bloque-sucursal');
+    const lista = document.getElementById('lista-sucursales');
+    const btnAbrir = document.getElementById('btn-abrir');
+
+    if (cliente.sucursales.length === 1) {
+      sucursalSeleccionada = cliente.sucursales[0];
+      bloque.classList.remove('visible');
+      btnAbrir.classList.add('visible');
+    } else {
+      lista.innerHTML = cliente.sucursales.map((s, i) => `
+        <button class="sucursal-btn" onclick="seleccionarSucursal(${i})">
+          <div>
+            <div>${s.sucursal}</div>
+            <div class="suc-dir">${s.direccion}</div>
+          </div>
+          <span class="suc-check">✓</span>
+        </button>
+      `).join('');
+      bloque.classList.add('visible');
+      btnAbrir.classList.remove('visible');
+    }
+  }
+
+  function seleccionarSucursal(idx) {
+    sucursalSeleccionada = clienteSeleccionado.sucursales[idx];
+    document.querySelectorAll('.sucursal-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', i === idx);
+    });
+    document.getElementById('btn-abrir').classList.add('visible');
+  }
+
+  function abrirFormulario() {
+    if (!clienteSeleccionado || !sucursalSeleccionada) return;
+    const params = new URLSearchParams({
+      nombre_cliente: clienteSeleccionado.nombre,
+      nit_cedula:     clienteSeleccionado.nit_cedula,
+      telefono:       clienteSeleccionado.telefono,
+      correo_cliente: clienteSeleccionado.correo,
+      direccion:      sucursalSeleccionada.direccion,
+      sucursal:       sucursalSeleccionada.sucursal,
+    });
+    window.open(FILLOUT_URL + '?' + params.toString(), '_blank');
+  }
+
+  function abrirNuevo() {
+    window.open(FILLOUT_URL, '_blank');
+  }
+
+  function limpiarSeleccion() {
+    clienteSeleccionado = null;
+    sucursalSeleccionada = null;
+    document.getElementById('buscar').value = '';
+    document.getElementById('buscar').focus();
+    document.getElementById('card-cliente').classList.remove('visible');
+    document.getElementById('bloque-sucursal').classList.remove('visible');
+    document.getElementById('btn-abrir').classList.remove('visible');
+    document.getElementById('resultados').classList.remove('visible');
+  }
+</script>
+</body>
+</html>

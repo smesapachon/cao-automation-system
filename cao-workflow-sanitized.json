@@ -1,0 +1,3399 @@
+{
+  "name": "Servicios Técnicos CAO",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "servicios-tecnicos",
+        "options": {}
+      },
+      "id": "883fbadc-6dd5-44ce-b422-84befa37558d",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        736
+      ],
+      "webhookId": "YOUR_WEBHOOK_ID_1"
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "=={{ $('Keep Raw Content').first().json.raw_content }}",
+        "name": "={{ $('Keep Raw Content').first().json.carpeta_mes }}-{{ $now.toFormat('HH-mm-ss') }}.json",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Raw Folder Exists?').first().json.id || $('Create Raw Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "db5bc82b-4d33-4eec-a372-999f97dcd188",
+      "name": "Save Raw JSON",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1344,
+        720
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($('Webhook Trigger').first().json.body) }}",
+        "options": {
+          "systemMessage": "You are a data processing assistant for YOUR_COMPANY_NAME You receive a raw JSON from a technical service form. Do ONLY these two steps:\n\nSTEP 1 - EXTRACT FORM DATA:\nExtract values from the \"questions\" array by field name:\n- \"¿El cliente es nuevo o existente?\" → tipo_cliente\n- \"Buscar Cliente\" → nombre_cliente_existente\n- \"Sucursal (1)\" → sucursal_existente\n- \"Nombre del cliente\" → nombre_cliente_nuevo\n- \"NIT / Cédula\" → nit_cedula\n- \"Teléfono\" → telefono\n- \"Correo del cliente\" → correo_cliente\n- \"Dirección\" → direccion\n- \"Sucursal\" → sucursal_nuevo\n- \"Contacto\" → contacto\n- \"Fecha\" → fecha (format as DD/MM/YYYY)\n- \"Hora de inicio\" → hora_inicio (use value as-is, format as HH:MM AM/PM)\n- \"Hora de fin\" → hora_fin (use value as-is, format as HH:MM AM/PM)\n- \"Tecnico\" → tecnico (join array with \", \")\n- \"Solicitud de Servicio\" → solicitud_servicio (this is a table field, it comes as array of objects — convert to JSON string: [{\"descripcion\":\"...\"}])\n- \"Equipos intervenidos\" → equipos (array of objects)\n- \"Trabajos realizados\" → trabajos_realizados\n- \"Observaciones\" → observaciones\n- \"Repuestos y Suministros\" → repuestos_suministros\n\nSTEP 2 - CLEAN DATA:\n- Fix spelling in trabajos_realizados, observaciones and repuestos_suministros\n- Fix spelling inside each descripcion value of solicitud_servicio\n- Capitalize equipment names and brands properly\n- Convert equipos array to JSON string: [{\"equipo\":\"...\",\"marca\":\"...\",\"modelo\":\"...\",\"serial\":\"...\",\"activo\":\"...\",\"usuario\":\"...\"}]\n- Convert solicitud_servicio array to JSON string: [{\"descripcion\":\"...\"}]\n\nSTEP 3 - RETURN JSON:\nReturn ONLY a valid JSON object, no extra text, no markdown backticks:\n{\n  \"tipo_cliente\": \"\",\n  \"nombre_cliente_existente\": \"\",\n  \"sucursal_existente\": \"\",\n  \"nombre_cliente_nuevo\": \"\",\n  \"nit_cedula\": \"\",\n  \"telefono\": \"\",\n  \"correo_cliente\": \"\",\n  \"direccion\": \"\",\n  \"sucursal_nuevo\": \"\",\n  \"contacto\": \"\",\n  \"fecha\": \"\",\n  \"hora_inicio\": \"\",\n  \"hora_fin\": \"\",\n  \"tecnico\": \"\",\n  \"solicitud_servicio\": \"\",\n  \"equipos_intervenidos\": \"\",\n  \"trabajos_realizados\": \"\",\n  \"observaciones\": \"\",\n  \"repuestos_suministros\": \"\"\n}"
+        }
+      },
+      "id": "ae575b8b-30ad-4d76-84cd-5ca89af6c807",
+      "name": "AI Data Processor",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1568,
+        720
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "d3e896a8-1d52-46f8-bafc-ba6fdabd274a",
+      "name": "OpenAI GPT-4o mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1488,
+        944
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "CAO Servicios Técnicos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Servicios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SERVICIOS_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_servicio": "={{ $json.id_servicio }}",
+            "fecha": "={{ $json.fecha }}",
+            "hora_inicio": "={{ $json.hora_inicio }}",
+            "hora_fin": "={{ $json.hora_fin }}",
+            "tecnico": "={{ $json.tecnico }}",
+            "id_cliente": "={{ $json.id_cliente }}",
+            "nombre_cliente": "={{ $json.nombre_cliente }}",
+            "nit_cedula": "={{ $json.nit_cedula }}",
+            "telefono": "={{ $json.telefono }}",
+            "correo_cliente": "={{ $json.correo_cliente }}",
+            "direccion": "={{ $json.direccion }}",
+            "sucursal": "={{ $json.sucursal }}",
+            "equipos_intervenidos": "={{ $json.equipos_intervenidos }}",
+            "trabajos_realizados": "={{ $json.trabajos_realizados }}",
+            "correo_envio": "={{ $json.correo_envio }}",
+            "solicitud_servicio": "={{ $json.solicitud_servicio }}",
+            "observaciones": "={{ $json.observaciones }}",
+            "repuestos_suministros": "={{ $json.repuestos_suministros }}",
+            "contacto": "={{ $json.contacto }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id_servicio",
+              "displayName": "id_servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora_inicio",
+              "displayName": "hora_inicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora_fin",
+              "displayName": "hora_fin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tecnico",
+              "displayName": "tecnico",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "solicitud_servicio",
+              "displayName": "solicitud_servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id_cliente",
+              "displayName": "id_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre_cliente",
+              "displayName": "nombre_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nit_cedula",
+              "displayName": "nit_cedula",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correo_cliente",
+              "displayName": "correo_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contacto",
+              "displayName": "contacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "direccion",
+              "displayName": "direccion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sucursal",
+              "displayName": "sucursal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "equipos_intervenidos",
+              "displayName": "equipos_intervenidos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "trabajos_realizados",
+              "displayName": "trabajos_realizados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correo_envio",
+              "displayName": "correo_envio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "observaciones",
+              "displayName": "observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "repuestos_suministros",
+              "displayName": "repuestos_suministros",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": false
+        }
+      },
+      "id": "8e7a8565-9237-4189-aaa8-5f113894e14c",
+      "name": "Save to Servicios Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3712,
+        640
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Build Final JSON').first().json;\nconst equipos = typeof data.equipos_intervenidos === 'string' ? JSON.parse(data.equipos_intervenidos) : data.equipos_intervenidos || [];\nconst solicitudes = typeof data.solicitud_servicio === 'string' ? JSON.parse(data.solicitud_servicio) : data.solicitud_servicio || [];\nconst logoBase64 = 'https://res.cloudinary.com/YOUR_CLOUDINARY_ACCOUNT/image/upload/YOUR_LOGO_IMAGE_PATH';\n\nconst firmas = {\n  'TECH_1': '',\n  'TECH_2': 'https://res.cloudinary.com/YOUR_CLOUDINARY_ACCOUNT/image/upload/YOUR_SIGNATURE_1_PATH',\n  'TECH_3':  'https://res.cloudinary.com/YOUR_CLOUDINARY_ACCOUNT/image/upload/YOUR_SIGNATURE_2_PATH',\n  'TECH_4':  '',\n  'TECH_5':    '',\n};\n\nconst jerarquia = ['TECH_1', 'TECH_2', 'TECH_3', 'TECH_4', 'TECH_5'];\nconst tecnicosEnServicio = (data.tecnico || '').split(',').map(t => t.trim());\nconst tecnicoFirma = jerarquia.find(t => tecnicosEnServicio.includes(t)) || '';\nconst firmaSrc = firmas[tecnicoFirma] || '';\n\nconst html = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:20px}\ntable.header-table{width:100%;border-collapse:collapse;margin-bottom:15px;border-bottom:2px solid #aaa;padding-bottom:10px}\ntable.header-table td{vertical-align:top;padding-bottom:10px}\n.header-logo img{max-width:180px}\n.header-info{border:1px solid #aaa;padding:10px;width:300px}\n.header-info table{width:100%}\n.header-info td{padding:3px 6px}\n.header-info td:first-child{font-weight:bold}\n.title{text-align:center;font-size:16px;font-weight:bold;margin:10px 0 12px 0}\n.section-title{border-bottom:2px solid #888;color:#000;padding:4px 2px;font-weight:bold;font-size:12px;margin-bottom:0;letter-spacing:0.3px}\ntable.main-table{width:100%;border-collapse:collapse;margin-bottom:10px;margin-top:2px}\ntable.main-table td{border:1px solid #bbb;padding:5px 8px}\ntable.main-table td.label{font-weight:bold;background-color:#f5f5f5;width:15%;white-space:nowrap}\ntable.main-table td.value{width:35%}\ntable.equipment-table{width:100%;border-collapse:collapse;margin-bottom:10px;margin-top:2px}\ntable.equipment-table th{border:1px solid #bbb;padding:5px 8px;background-color:#f0f0f0;color:#000;text-align:center;font-size:11px;font-weight:bold}\ntable.equipment-table td{border:1px solid #bbb;padding:5px 8px;text-align:center;font-size:11px}\n.text-box{border:1px solid #bbb;padding:10px;min-height:40px;margin-bottom:8px;margin-top:2px;line-height:1.6}\n.text-box-small{border:1px solid #bbb;padding:10px;min-height:30px;margin-bottom:8px;margin-top:2px;line-height:1.6}\n.company-footer{text-align:center;font-size:10px;margin-top:20px;border-top:1px solid #aaa;padding-top:8px;color:#555}\n</style></head><body>\n\n<table class=\"header-table\">\n  <tr>\n    <td><div class=\"header-logo\"><img src=\"${logoBase64}\" alt=\"Logo\"></div></td>\n    <td align=\"right\">\n      <div class=\"header-info\"><table>\n        <tr><td>ORDEN No:</td><td>${data.id_servicio||''}</td></tr>\n        <tr><td>FECHA:</td><td>${data.fecha||''}</td></tr>\n        <tr><td>HORA INICIO:</td><td>${data.hora_inicio||''}</td></tr>\n        <tr><td>HORA FIN:</td><td>${data.hora_fin||''}</td></tr>\n        <tr><td>TÉCNICO:</td><td>${data.tecnico||''}</td></tr>\n      </table></div>\n    </td>\n  </tr>\n</table>\n\n<div style=\"font-size:9px;color:#333;border:1px solid #bbb;padding:8px;margin-bottom:12px;line-height:1.5\">\n  <strong>CLÁUSULA DE INICIO:</strong> El cliente garantiza contar con un backup de seguridad de todos los datos contenidos en el equipo a diagnosticar, así como las versiones de los programas previamente instalados en el mismo. Igualmente certifica haber estado presente durante el inventario físico realizado por el técnico antes de iniciar el servicio.\n</div>\n\n<div class=\"title\">REPORTE DE SERVICIO TÉCNICO</div>\n\n<div class=\"section-title\">Datos del Cliente</div>\n<table class=\"main-table\">\n  <tr>\n    <td class=\"label\">CLIENTE:</td><td class=\"value\">${data.nombre_cliente||''}</td>\n    <td class=\"label\">SUCURSAL:</td><td class=\"value\">${data.sucursal!=='null'&&data.sucursal?data.sucursal:''}</td>\n  </tr>\n  <tr>\n    <td class=\"label\">NIT/CÉDULA:</td><td class=\"value\">${data.nit_cedula||''}</td>\n    <td class=\"label\">TELÉFONO:</td><td class=\"value\">${data.telefono||''}</td>\n  </tr>\n  <tr>\n    <td class=\"label\">DIRECCIÓN:</td><td class=\"value\">${data.direccion||''}</td>\n    <td class=\"label\">CORREO:</td><td class=\"value\">${data.correo_cliente||''}</td>\n  </tr>\n  <tr>\n    <td class=\"label\">CONTACTO:</td><td class=\"value\" colspan=\"3\">${data.contacto||''}</td>\n  </tr>\n</table>\n\n<div class=\"section-title\">Solicitud de Servicio</div>\n<table class=\"equipment-table\" style=\"margin-bottom:10px;margin-top:2px\">\n  <thead><tr><th>DESCRIPCIÓN</th></tr></thead>\n  <tbody>\n    ${solicitudes.length > 0\n      ? solicitudes.map(s => `<tr><td style=\"text-align:left\">${s.descripcion || s.Descripción || s[Object.keys(s)[0]] || ''}</td></tr>`).join('')\n      : '<tr><td style=\"text-align:center;color:#666\">Sin solicitudes registradas</td></tr>'\n    }\n  </tbody>\n</table>\n\n<div class=\"section-title\">Equipos Intervenidos</div>\n<table class=\"equipment-table\">\n  <thead><tr>\n    <th>EQUIPO</th><th>MARCA</th><th>MODELO</th><th>SERIAL</th><th>ACTIVO</th><th>USUARIO</th>\n  </tr></thead>\n  <tbody>\n    ${equipos.length>0\n      ? equipos.map(eq=>`<tr>\n          <td>${eq.equipo||''}</td><td>${eq.marca||''}</td><td>${eq.modelo||''}</td>\n          <td>${eq.serial||''}</td><td>${eq.activo||''}</td><td>${eq.usuario||''}</td>\n        </tr>`).join('')\n      : '<tr><td colspan=\"6\" style=\"text-align:center;color:#666\">Sin equipos registrados</td></tr>'\n    }\n  </tbody>\n</table>\n\n<div class=\"section-title\">Trabajos Realizados</div>\n<div class=\"text-box\">${data.trabajos_realizados||''}</div>\n\n<div class=\"section-title\">Repuestos y Suministros</div>\n<div class=\"text-box-small\">${data.repuestos_suministros||''}</div>\n\n<div class=\"section-title\">Observaciones</div>\n<div class=\"text-box-small\">${data.observaciones||''}</div>\n\n<table style=\"width:100%;border-collapse:collapse;margin-top:20px\">\n  <tr>\n    <td style=\"width:50%;text-align:center;padding:0 10px;vertical-align:bottom\">\n      <div style=\"height:70px;position:relative\">\n        ${firmaSrc ? `<img src=\"${firmaSrc}\" style=\"max-height:55px;max-width:160px;position:absolute;bottom:8px;left:50%;transform:translateX(-50%)\">` : ''}\n      </div>\n      <div style=\"border-top:1px solid #888;padding-top:6px;margin-top:0px;font-size:11px\">\n        FIRMA DEL TÉCNICO — <strong>${data.tecnico||''}</strong>\n      </div>\n    </td>\n    <td style=\"width:50%;text-align:center;padding:0 10px;vertical-align:bottom\">\n      <div style=\"height:70px\"></div>\n      <div style=\"border-top:1px solid #888;padding-top:6px;margin-top:0px;font-size:11px\">\n        NOMBRE Y SELLO DEL CLIENTE\n      </div>\n    </td>\n  </tr>\n</table>\n\n<div class=\"company-footer\">\n  YOUR_COMPANY_NAME — Calle 142 No. 23-05 Piso 1 — Tel: 301 757 5479 - 301 757 5628 — sales@yourcompany.com\n</div>\n\n</body></html>`;\n\nreturn [{ json: { html, ...data } }];"
+      },
+      "id": "0027bf78-71f6-40be-90d9-8a88b5de2267",
+      "name": "Generate PDF HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        704
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.html2pdfrocket.com/pdf",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"value\": $json.html, \"apikey\": \"YOUR_HTML2PDF_API_KEY\" } }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "e0d29be0-0698-412d-afe7-9078e2074f43",
+      "name": "Convert HTML to PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        4464,
+        688
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Build Final JSON').first().json.id_servicio }}-{{ $('Build Final JSON').first().json.nombre_cliente }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Set PDF Folder ID').first().json.pdf_folder_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "22d118e1-47fb-4fdd-a1ec-5f6ba865a86f",
+      "name": "Save PDF to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4688,
+        672
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "toRecipients": "={{ $('Build Final JSON').first().json.correo_cliente }}",
+        "subject": "={{ 'Reporte de Servicio Técnico - ' + $('Build Final JSON').first().json.id_servicio + ' - ' + $('Build Final JSON').first().json.nombre_cliente }}",
+        "bodyContent": "Estimado cliente,\n\nAdjunto encontrará el reporte de servicio técnico correspondiente a la visita realizada.\n\nQuedamos atentos ante cualquier inquietud.\n\nAtentamente,\nYOUR_COMPANY_NAME\nTel: 301 757 5479 \nsales@yourcompany.com",
+        "additionalFields": {
+          "attachments": {
+            "attachments": [
+              {
+                "binaryPropertyName": "data"
+              }
+            ]
+          },
+          "ccRecipients": "={{ \n  (function() {\n    const jerarquia = {\n      'TECH_1':  'tech3@yourcompany.com',\n      'TECH_2':  'tech1@yourcompany.com',\n      'TECH_3':   'tech2@yourcompany.com',\n      'TECH_4':   '',\n      'TECH_5':     'tech4@yourcompany.com'\n    };\n    const orden = ['TECH_1', 'TECH_2', 'TECH_3', 'TECH_4', 'TECH_5'];\n    const tecnicos = ($('Build Final JSON').first().json.tecnico || '').split(',').map(t => t.trim());\n    const jefe = orden.find(t => tecnicos.includes(t));\n    const correoTecnico = jefe ? jerarquia[jefe] : '';\n    const ccs = ['manager@yourcompany.com', 'sales@yourcompany.com'];\n    if (correoTecnico) ccs.push(correoTecnico);\n    return ccs.join(',');\n  })()\n}}"
+        }
+      },
+      "id": "7965cfab-5514-40cc-b4dd-3891cb788906",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        6800,
+        656
+      ],
+      "webhookId": "YOUR_WEBHOOK_ID_2",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 7,
+        "resumeUnit": "days",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        6192,
+        672
+      ],
+      "id": "dfdc7b37-629a-41e4-b99a-f4ab119eaca7",
+      "name": "Wait",
+      "webhookId": "YOUR_WEBHOOK_ID_3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener la fecha del formulario (campo Fecha de Fillout)\nconst preguntas = $input.first().json.body.submission.questions;\nconst campoFecha = preguntas.find(q => q.id === \"o1P9\");\n\nlet fecha;\nif (campoFecha && campoFecha.value) {\n  // Usar la fecha del formulario\n  fecha = new Date(campoFecha.value);\n} else {\n  // Si no hay fecha en el formulario, usar fecha actual Bogotá\n  fecha = new Date();\n  fecha.setHours(fecha.getHours() - 5);\n}\n\n// Generar nombre de carpeta del mes: YYYY-MM\nconst mes = fecha.toISOString().substring(0, 7); // ej: \"2026-04\"\n\n// Pasar al siguiente nodo\nreturn [{\n  json: {\n    ...$input.first().json,\n    carpeta_mes: mes\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        736
+      ],
+      "id": "9dc1321e-5d61-4730-a382-21c89ab2b9e2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "CAO Servicios Técnicos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Raw",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_RAW_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now.toISO() }}",
+            "datos_raw": "={{ JSON.stringify($('Build Final JSON').first().json) }}",
+            "id_servicio": "={{ $('Build Final JSON').first().json.id_servicio }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "id_servicio",
+              "displayName": "id_servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "datos_raw",
+              "displayName": "datos_raw",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3952,
+        624
+      ],
+      "id": "f48825c1-22c4-4bb4-972d-08836dce707c",
+      "name": "Save Raw Sheets",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2 API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "toRecipients": "=manager@yourcompany.com",
+        "subject": "={{ 'Aprobar Reporte ' + $('Build Final JSON').first().json.id_servicio + ' - ' + $('Build Final JSON').first().json.nombre_cliente }}",
+        "bodyContent": "={{ 'Se ha generado un nuevo reporte de servicio técnico.\\n\\nCliente: ' + $('Build Final JSON').first().json.nombre_cliente + '\\nServicio: ' + $('Build Final JSON').first().json.id_servicio + '\\nTécnico: ' + $('Build Final JSON').first().json.tecnico + '\\nFecha: ' + $('Build Final JSON').first().json.fecha + '\\n\\n✅ Haz clic para APROBAR y enviar al cliente:\\n' + $execution.resumeUrl + '\\n\\n✏️ Haz clic para CORREGIR:\\nhttps://YOUR_N8N_INSTANCE.app.n8n.cloud/webhook/iniciar-correccion?resumeUrl=' + encodeURIComponent($execution.resumeUrl) + '&data=' + encodeURIComponent(JSON.stringify($('Build Final JSON').first().json)) }}",
+        "additionalFields": {
+          "attachments": {
+            "attachments": [
+              {
+                "binaryPropertyName": "=data"
+              }
+            ]
+          },
+          "ccRecipients": "={{ \n  (function() {\n    const jerarquia = {\n      'TECH_1':  'tech3@yourcompany.com',\n      'TECH_2':  'tech1@yourcompany.com',\n      'TECH_3':   'tech2@yourcompany.com',\n      'TECH_4':   '',\n      'TECH_5':     'tech4@yourcompany.com'\n    };\n    const orden = ['TECH_1', 'TECH_2', 'TECH_3', 'TECH_4', 'TECH_5'];\n    const tecnicos = ($('Build Final JSON').first().json.tecnico || '').split(',').map(t => t.trim());\n    const jefe = orden.find(t => tecnicos.includes(t));\n    const correo = jefe ? jerarquia[jefe] : '';\n    return correo || 'manager@yourcompany.com';\n  })()\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        5952,
+        672
+      ],
+      "id": "e992c0ea-75df-479a-afb7-b51a3244fa6e",
+      "name": "Send a message",
+      "webhookId": "YOUR_WEBHOOK_ID_4",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Save PDF to Drive').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        5472,
+        672
+      ],
+      "id": "e9189aab-71f1-41aa-a9ae-13f2b567fed6",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Save PDF to Drive').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        6592,
+        656
+      ],
+      "id": "37b88ef0-759a-46ad-bb57-c5a15282d2b0",
+      "name": "Download file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: AI Data Processor\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        912
+      ],
+      "id": "e8c7a9e0-f94a-4403-981e-44145b618580",
+      "name": "Mensaje de Error",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en AI Data Processor"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        912
+      ],
+      "id": "e87b401d-82bd-49dc-8f35-a8057e9699f8",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Save to Servicios Sheet"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3984,
+        944
+      ],
+      "id": "317ff04c-eb81-43b2-bad3-66ce61f7d272",
+      "name": "Stop and Error1"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Save to Servicios Sheet\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        3824,
+        944
+      ],
+      "id": "1f1822f6-4959-494c-ac18-3da188b4f9b9",
+      "name": "Mensaje de Error2",
+      "webhookId": "YOUR_WEBHOOK_ID_6",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Convert HMTL to PDF"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        4880,
+        928
+      ],
+      "id": "efe1e7a3-ad6f-40bc-b9e9-7756d7ac7224",
+      "name": "Stop and Error2"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Send a message (gerencia)\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        6320,
+        944
+      ],
+      "id": "8cb87a79-712b-4c48-81ec-2041100ae37e",
+      "name": "Mensaje de Error1",
+      "webhookId": "YOUR_WEBHOOK_ID_8",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Convert HTML to PDF\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        4688,
+        928
+      ],
+      "id": "d02158ae-bfbc-456e-adf3-cdc598890f84",
+      "name": "Mensaje de Error3",
+      "webhookId": "YOUR_WEBHOOK_ID_7",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Send a Message"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        6496,
+        944
+      ],
+      "id": "c4ff917e-119b-4519-bfd2-ed1ee30f0e62",
+      "name": "Stop and Error3"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Send Email (cliente)\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        7104,
+        944
+      ],
+      "id": "00d24a9d-304f-4158-9111-3f95692c218a",
+      "name": "Mensaje de Error4",
+      "webhookId": "YOUR_WEBHOOK_ID_9",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Send Email to Costumer"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        7264,
+        944
+      ],
+      "id": "417293c2-4c79-47de-a6c9-b3a0de31c453",
+      "name": "Stop and Error4"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Generate PDF HTML"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        4480,
+        928
+      ],
+      "id": "f1a41652-f100-4893-805c-fb7f5f7ab920",
+      "name": "Stop and Error5"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Generate PDF HTML\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        4320,
+        928
+      ],
+      "id": "128bf5ac-28d4-4df4-8993-dabb90b7d639",
+      "name": "Mensaje de Error5",
+      "webhookId": "YOUR_WEBHOOK_ID_7",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Download file\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        5920,
+        944
+      ],
+      "id": "822024f0-3924-4a21-afe5-717613a1e632",
+      "name": "Mensaje de Error6",
+      "webhookId": "YOUR_WEBHOOK_ID_8",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Download file"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        6096,
+        944
+      ],
+      "id": "41447dcf-f60e-4875-8db5-8b4e9a629400",
+      "name": "Stop and Error6"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Download file1\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        6752,
+        944
+      ],
+      "id": "c72d614a-2188-491e-9d6e-3ad836a3a692",
+      "name": "Mensaje de Error7",
+      "webhookId": "YOUR_WEBHOOK_ID_9",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Download file1"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        6896,
+        944
+      ],
+      "id": "04c7b595-0922-4d14-9590-f68ffa1ed81c",
+      "name": "Stop and Error7"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Leer output del AI Data Processor\nlet raw = $('AI Data Processor').first().json.output || '';\nraw = raw.replace(/```json/g, '').replace(/```/g, '').trim();\nconst formData = JSON.parse(raw);\n\n// Leer todas las filas de Sheets para obtener último SRV\nconst sheetsData = $('Read Servicios Sheets').all();\nconst ids = sheetsData\n  .map(item => item.json.id_servicio)\n  .filter(id => id && id.startsWith('SRV-'))\n  .map(id => parseInt(id.replace('SRV-', '')))\n  .filter(n => !isNaN(n));\n\nconst lastSRV = ids.length > 0 ? Math.max(...ids) : 0;\nconst nextSRV = 'SRV-' + String(lastSRV + 1).padStart(3, '0');\n\nreturn [{\n  json: {\n    ...formData,\n    id_servicio: nextSRV\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        640
+      ],
+      "id": "4645b90b-d393-4ae8-9b3d-35e3b17c40e6",
+      "name": "Generate IDs"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "CAO Servicios Técnicos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Servicios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SERVICIOS_GID"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1920,
+        640
+      ],
+      "id": "175c483e-35df-4e67-ba0a-f9e008a3965a",
+      "name": "Read Servicios Sheets",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "CAO Servicios Técnicos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2368,
+        640
+      ],
+      "id": "f29f12c0-19b0-4694-93de-0fd6bf4daab8",
+      "name": "Read Clientes Sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "835a4c07-b4e0-4566-869f-a1a0e46d090a",
+              "leftValue": "={{ $('Read Clientes Sheet').all().filter(row => row.json.nit_cedula == $('Generate IDs').first().json.nit_cedula).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2624,
+        624
+      ],
+      "id": "cbbe886f-63b7-41db-8183-b388e1caf2fd",
+      "name": "Cliente Existe?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Leer todos los clientes existentes\nconst clientes = $('Read Clientes Sheet').all();\n\n// Encontrar el CLI más alto\nconst ids = clientes\n  .map(item => item.json.id_cliente)\n  .filter(id => id && id.startsWith('CLI-'))\n  .map(id => parseInt(id.replace('CLI-', '')))\n  .filter(n => !isNaN(n));\n\nconst lastCLI = ids.length > 0 ? Math.max(...ids) : 0;\nconst nextCLI = 'CLI-' + String(lastCLI + 1).padStart(3, '0');\n\n// Datos del formulario\nconst data = $('Generate IDs').first().json;\n\nreturn [{\n  json: {\n    ...data,\n    id_cliente: nextCLI,\n    nombre_cliente: data.nombre_cliente_nuevo\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        704
+      ],
+      "id": "a549990a-06c8-4e8a-93cd-9078d1fa2820",
+      "name": "Generate CLI Code"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "CAO Servicios Técnicos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_cliente": "={{ $json.id_cliente }}",
+            "nombre": "={{ $json.nombre_cliente }}",
+            "nit_cedula": "={{ $json.nit_cedula }}",
+            "telefono": "={{ $json.telefono }}",
+            "correo": "={{ $json.correo_cliente }}",
+            "direccion": "={{ $json.direccion }}",
+            "sucursal": "={{ $json.sucursal_nuevo }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "id_cliente",
+              "displayName": "id_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nit_cedula",
+              "displayName": "nit_cedula",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correo",
+              "displayName": "correo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "direccion",
+              "displayName": "direccion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sucursal",
+              "displayName": "sucursal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3040,
+        704
+      ],
+      "id": "b609605a-5aaa-4f28-ad8c-3c8b4b40e69a",
+      "name": "Append Cliente",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3264,
+        640
+      ],
+      "id": "d8e29b32-6511-4f81-883f-31fbc44919fe",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Generate IDs').first().json;\nconst clientesSheet = $('Read Clientes Sheet').all();\n// Buscar cliente por NIT\nconst clienteEncontrado = clientesSheet.find(\n  row => String(row.json.nit_cedula) === String(data.nit_cedula)\n);\n// Datos del cliente\nlet idCliente, nombreCliente;\nif (clienteEncontrado) {\n  idCliente = clienteEncontrado.json.id_cliente;\n  nombreCliente = clienteEncontrado.json.nombre;\n} else {\n  try {\n    idCliente = $('Generate CLI Code').first().json.id_cliente;\n    nombreCliente = data.nombre_cliente_nuevo;\n  } catch(e) {\n    idCliente = 'CLI-000';\n    nombreCliente = data.nombre_cliente_nuevo;\n  }\n}\nconst sucursal = data.tipo_cliente === 'Cliente existente'\n  ? (data.sucursal_existente || '')\n  : (data.sucursal_nuevo || '');\nreturn [{\n  json: {\n    id_servicio: data.id_servicio,\n    fecha: data.fecha,\n    hora_inicio: data.hora_inicio,\n    hora_fin: data.hora_fin,\n    tecnico: data.tecnico,\n    solicitud_servicio: data.solicitud_servicio,\n    id_cliente: idCliente,\n    nombre_cliente: nombreCliente,\n    nit_cedula: data.nit_cedula,\n    telefono: data.telefono,\n    correo_cliente: data.correo_cliente,\n    direccion: data.direccion,\n    sucursal: sucursal,\n    contacto: data.contacto || '',\n    equipos_intervenidos: data.equipos_intervenidos,\n    trabajos_realizados: data.trabajos_realizados,\n    observaciones: data.observaciones,\n    repuestos_suministros: data.repuestos_suministros,\n    correo_envio: data.correo_cliente\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3488,
+        640
+      ],
+      "id": "c48e99ce-85af-4572-9257-8aaebdc47c42",
+      "name": "Build Final JSON",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "=={{ 'RAW ' + $('Code in JavaScript').first().json.carpeta_mes }}",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "YOUR_RAW_FOLDER_ID",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        672,
+        736
+      ],
+      "id": "e0c7e1f3-d6fc-4ad3-b7a8-de3cbb4102eb",
+      "name": "Search Raw Folder",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0fdbb1cc-3d75-46a8-8bf1-3c3fd4d9197c",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        896,
+        736
+      ],
+      "id": "04de396b-b17e-4957-a096-0e60571f3790",
+      "name": "Raw Folder Exists?",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ 'RAW ' + $('Code in JavaScript').first().json.carpeta_mes }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "YOUR_RAW_FOLDER_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        800
+      ],
+      "id": "e0fcf8ea-1e88-478e-b086-59fee6408292",
+      "name": "Create Raw Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2eb24a62-27f6-4d05-8f95-98cbf4824fef",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4368,
+        544
+      ],
+      "id": "c6293566-8535-414e-9a53-340131ce4792",
+      "name": "PDF Folder Exists?",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ 'PDF ' + $('Code in JavaScript').first().json.carpeta_mes }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "YOUR_PDF_FOLDER_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4704,
+        544
+      ],
+      "id": "2368bfa1-9fef-4ac0-8cb9-f4e4be4975ef",
+      "name": "Create PDF Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "=={{ 'PDF ' + $('Code in JavaScript').first().json.carpeta_mes }}",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "YOUR_PDF_FOLDER_ID",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4160,
+        544
+      ],
+      "id": "8e5abf65-afee-48c2-a0b0-f1c237b1b61a",
+      "name": "Search PDF Folder",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nreturn [{\n  json: {\n    ...item.json,\n    raw_content: JSON.stringify(item.json.body)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        736
+      ],
+      "id": "d57aeac2-02ba-4fbc-970f-4e5215cc2b15",
+      "name": "Keep Raw Content"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f891134c-2a3d-4384-9c10-ab491a042402",
+              "name": "pdf_folder_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5120,
+        384
+      ],
+      "id": "e4bffaee-ec8d-4706-bc74-21ecb09efe2d",
+      "name": "Set PDF Folder ID"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "CAO Servicios Técnicos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Servicios",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=YOUR_SERVICIOS_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_servicio": "={{ $json.body.id_servicio }}",
+            "fecha": "={{ $json.body.fecha }}",
+            "hora_inicio": "={{ $json.body.hora_inicio }}",
+            "hora_fin": "={{ $json.body.hora_fin }}",
+            "tecnico": "={{ $json.body.tecnico }}",
+            "solicitud_servicio": "={{ $json.body.solicitud_servicio }}",
+            "id_cliente": "={{ $json.body.id_cliente }}",
+            "nombre_cliente": "={{ $json.body.nombre_cliente }}",
+            "nit_cedula": "={{ $json.body.nit_cedula }}",
+            "telefono": "={{ $json.body.telefono }}",
+            "correo_cliente": "={{ $json.body.correo_cliente }}",
+            "contacto": "={{ $json.body.contacto }}",
+            "direccion": "={{ $json.body.direccion }}",
+            "sucursal": "={{ $json.body.sucursal }}",
+            "equipos_intervenidos": "={{ $json.body.equipos_intervenidos }}",
+            "trabajos_realizados": "={{ $json.body.trabajos_realizados }}",
+            "correo_envio": "={{ $json.body.correo_envio }}",
+            "observaciones": "={{ $json.body.observaciones }}",
+            "repuestos_suministros": "={{ $json.body.repuestos_suministros }}"
+          },
+          "matchingColumns": [
+            "id_servicio"
+          ],
+          "schema": [
+            {
+              "id": "id_servicio",
+              "displayName": "id_servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fecha",
+              "displayName": "fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora_inicio",
+              "displayName": "hora_inicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hora_fin",
+              "displayName": "hora_fin",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tecnico",
+              "displayName": "tecnico",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "solicitud_servicio",
+              "displayName": "solicitud_servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "id_cliente",
+              "displayName": "id_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre_cliente",
+              "displayName": "nombre_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nit_cedula",
+              "displayName": "nit_cedula",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "telefono",
+              "displayName": "telefono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correo_cliente",
+              "displayName": "correo_cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "contacto",
+              "displayName": "contacto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "direccion",
+              "displayName": "direccion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sucursal",
+              "displayName": "sucursal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "equipos_intervenidos",
+              "displayName": "equipos_intervenidos",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "trabajos_realizados",
+              "displayName": "trabajos_realizados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "correo_envio",
+              "displayName": "correo_envio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "observaciones",
+              "displayName": "observaciones",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "repuestos_suministros",
+              "displayName": "repuestos_suministros",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        1120
+      ],
+      "id": "bf98ee40-6b81-4359-afe4-fcf4d14486f3",
+      "name": "C - Update Servicios Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GSHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.html2pdfrocket.com/pdf",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ \"value\": $json.html, \"apikey\": \"YOUR_HTML2PDF_API_KEY\" }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "571ddc7a-15a4-4f10-8ecd-1a18298ce3aa",
+      "name": "C - Convert HTML to PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        1120
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Webhook Correcciones').first().json.body;\nconst equipos = typeof data.equipos_intervenidos === 'string' ? JSON.parse(data.equipos_intervenidos) : data.equipos_intervenidos || [];\nconst solicitudes = typeof data.solicitud_servicio === 'string' ? JSON.parse(data.solicitud_servicio) : data.solicitud_servicio || [];\nconst logoBase64 = 'https://res.cloudinary.com/YOUR_CLOUDINARY_ACCOUNT/image/upload/YOUR_LOGO_IMAGE_PATH';\n\nconst firmas = {\n  'TECH_1': '',\n  'TECH_2': 'https://res.cloudinary.com/YOUR_CLOUDINARY_ACCOUNT/image/upload/YOUR_SIGNATURE_1_PATH',\n  'TECH_3':  'https://res.cloudinary.com/YOUR_CLOUDINARY_ACCOUNT/image/upload/YOUR_SIGNATURE_2_PATH',\n  'TECH_4':  '',\n  'TECH_5':    '',\n};\n\nconst jerarquia = ['TECH_1', 'TECH_2', 'TECH_3', 'TECH_4', 'TECH_5'];\nconst tecnicosEnServicio = (data.tecnico || '').split(',').map(t => t.trim());\nconst tecnicoFirma = jerarquia.find(t => tecnicosEnServicio.includes(t)) || '';\nconst firmaSrc = firmas[tecnicoFirma] || '';\n\nconst html = `<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:Arial,sans-serif;font-size:12px;color:#000;padding:20px}\ntable.header-table{width:100%;border-collapse:collapse;margin-bottom:15px;border-bottom:2px solid #aaa;padding-bottom:10px}\ntable.header-table td{vertical-align:top;padding-bottom:10px}\n.header-logo img{max-width:180px}\n.header-info{border:1px solid #aaa;padding:10px;width:300px}\n.header-info table{width:100%}\n.header-info td{padding:3px 6px}\n.header-info td:first-child{font-weight:bold}\n.title{text-align:center;font-size:16px;font-weight:bold;margin:10px 0 12px 0}\n.section-title{border-bottom:2px solid #888;color:#000;padding:4px 2px;font-weight:bold;font-size:12px;margin-bottom:0;letter-spacing:0.3px}\ntable.main-table{width:100%;border-collapse:collapse;margin-bottom:10px;margin-top:2px}\ntable.main-table td{border:1px solid #bbb;padding:5px 8px}\ntable.main-table td.label{font-weight:bold;background-color:#f5f5f5;width:15%;white-space:nowrap}\ntable.main-table td.value{width:35%}\ntable.equipment-table{width:100%;border-collapse:collapse;margin-bottom:10px;margin-top:2px}\ntable.equipment-table th{border:1px solid #bbb;padding:5px 8px;background-color:#f0f0f0;color:#000;text-align:center;font-size:11px;font-weight:bold}\ntable.equipment-table td{border:1px solid #bbb;padding:5px 8px;text-align:center;font-size:11px}\n.text-box{border:1px solid #bbb;padding:10px;min-height:40px;margin-bottom:8px;margin-top:2px;line-height:1.6}\n.text-box-small{border:1px solid #bbb;padding:10px;min-height:30px;margin-bottom:8px;margin-top:2px;line-height:1.6}\n.company-footer{text-align:center;font-size:10px;margin-top:20px;border-top:1px solid #aaa;padding-top:8px;color:#555}\n</style></head><body>\n\n<table class=\"header-table\">\n  <tr>\n    <td><div class=\"header-logo\"><img src=\"${logoBase64}\" alt=\"Logo\"></div></td>\n    <td align=\"right\">\n      <div class=\"header-info\"><table>\n        <tr><td>ORDEN No:</td><td>${data.id_servicio||''}</td></tr>\n        <tr><td>FECHA:</td><td>${data.fecha||''}</td></tr>\n        <tr><td>HORA INICIO:</td><td>${data.hora_inicio||''}</td></tr>\n        <tr><td>HORA FIN:</td><td>${data.hora_fin||''}</td></tr>\n        <tr><td>TÉCNICO:</td><td>${data.tecnico||''}</td></tr>\n      </table></div>\n    </td>\n  </tr>\n</table>\n\n<div style=\"font-size:9px;color:#333;border:1px solid #bbb;padding:8px;margin-bottom:12px;line-height:1.5\">\n  <strong>CLÁUSULA DE INICIO:</strong> El cliente garantiza contar con un backup de seguridad de todos los datos contenidos en el equipo a diagnosticar, así como las versiones de los programas previamente instalados en el mismo. Igualmente certifica haber estado presente durante el inventario físico realizado por el técnico antes de iniciar el servicio.\n</div>\n\n<div class=\"title\">REPORTE DE SERVICIO TÉCNICO</div>\n\n<div class=\"section-title\">Datos del Cliente</div>\n<table class=\"main-table\">\n  <tr>\n    <td class=\"label\">CLIENTE:</td><td class=\"value\">${data.nombre_cliente||''}</td>\n    <td class=\"label\">SUCURSAL:</td><td class=\"value\">${data.sucursal!=='null'&&data.sucursal?data.sucursal:''}</td>\n  </tr>\n  <tr>\n    <td class=\"label\">NIT/CÉDULA:</td><td class=\"value\">${data.nit_cedula||''}</td>\n    <td class=\"label\">TELÉFONO:</td><td class=\"value\">${data.telefono||''}</td>\n  </tr>\n  <tr>\n    <td class=\"label\">DIRECCIÓN:</td><td class=\"value\">${data.direccion||''}</td>\n    <td class=\"label\">CORREO:</td><td class=\"value\">${data.correo_cliente||''}</td>\n  </tr>\n  <tr>\n    <td class=\"label\">CONTACTO:</td><td class=\"value\" colspan=\"3\">${data.contacto||''}</td>\n  </tr>\n</table>\n\n<div class=\"section-title\">Solicitud de Servicio</div>\n<table class=\"equipment-table\" style=\"margin-bottom:10px;margin-top:2px\">\n  <thead><tr><th>DESCRIPCIÓN</th></tr></thead>\n  <tbody>\n    ${solicitudes.length > 0\n      ? solicitudes.map(s => `<tr><td style=\"text-align:left\">${s.descripcion || s.Descripción || s[Object.keys(s)[0]] || ''}</td></tr>`).join('')\n      : '<tr><td style=\"text-align:center;color:#666\">Sin solicitudes registradas</td></tr>'\n    }\n  </tbody>\n</table>\n\n<div class=\"section-title\">Equipos Intervenidos</div>\n<table class=\"equipment-table\">\n  <thead><tr>\n    <th>EQUIPO</th><th>MARCA</th><th>MODELO</th><th>SERIAL</th><th>ACTIVO</th><th>USUARIO</th>\n  </tr></thead>\n  <tbody>\n    ${equipos.length>0\n      ? equipos.map(eq=>`<tr>\n          <td>${eq.equipo||''}</td><td>${eq.marca||''}</td><td>${eq.modelo||''}</td>\n          <td>${eq.serial||''}</td><td>${eq.activo||''}</td><td>${eq.usuario||''}</td>\n        </tr>`).join('')\n      : '<tr><td colspan=\"6\" style=\"text-align:center;color:#666\">Sin equipos registrados</td></tr>'\n    }\n  </tbody>\n</table>\n\n<div class=\"section-title\">Trabajos Realizados</div>\n<div class=\"text-box\">${data.trabajos_realizados||''}</div>\n\n<div class=\"section-title\">Repuestos y Suministros</div>\n<div class=\"text-box-small\">${data.repuestos_suministros||''}</div>\n\n<div class=\"section-title\">Observaciones</div>\n<div class=\"text-box-small\">${data.observaciones||''}</div>\n\n<table style=\"width:100%;border-collapse:collapse;margin-top:20px\">\n  <tr>\n    <td style=\"width:50%;text-align:center;padding:0 10px;vertical-align:bottom\">\n      <div style=\"height:70px;position:relative\">\n        ${firmaSrc ? `<img src=\"${firmaSrc}\" style=\"max-height:55px;max-width:160px;position:absolute;bottom:8px;left:50%;transform:translateX(-50%)\">` : ''}\n      </div>\n      <div style=\"border-top:1px solid #888;padding-top:6px;margin-top:0px;font-size:11px\">\n        FIRMA DEL TÉCNICO — <strong>${data.tecnico||''}</strong>\n      </div>\n    </td>\n    <td style=\"width:50%;text-align:center;padding:0 10px;vertical-align:bottom\">\n      <div style=\"height:70px\"></div>\n      <div style=\"border-top:1px solid #888;padding-top:6px;margin-top:0px;font-size:11px\">\n        NOMBRE Y SELLO DEL CLIENTE\n      </div>\n    </td>\n  </tr>\n</table>\n\n<div class=\"company-footer\">\n  YOUR_COMPANY_NAME — Calle 142 No. 23-05 Piso 1 — Tel: 301 757 5479 - 301 757 5628 — sales@yourcompany.com\n</div>\n\n</body></html>`;\n\nreturn [{ json: { html, ...data } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        1120
+      ],
+      "id": "6c0e45b0-7760-4968-8bb9-ef141207a89f",
+      "name": "C - Generate PDF HTML"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "correccion-servicio",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        1216
+      ],
+      "id": "0b8f7bf2-09a1-41d5-aa03-873399a70c58",
+      "name": "Webhook Correcciones",
+      "webhookId": "YOUR_WEBHOOK_ID_11"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "=={{ $('Webhook Correcciones').first().json.body.id_servicio }}",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        896,
+        1120
+      ],
+      "id": "af7c1b56-6884-4c68-aebc-f139e570b03e",
+      "name": "C - Find Original PDF",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('C - Upload PDF to Drive').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        1120
+      ],
+      "id": "b1b75dce-6e06-476c-9c94-f82c001f2d79",
+      "name": "C - Download PDF",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "toRecipients": "=manager@yourcompany.com",
+        "subject": "={{ '✏️ CORREGIDO - Aprobar Reporte ' + $('Webhook Correcciones').first().json.body.id_servicio + ' - ' + $('Webhook Correcciones').first().json.body.nombre_cliente }}",
+        "bodyContent": "={{ 'Se ha corregido el reporte de servicio técnico.\\n\\nCliente: ' + $('Webhook Correcciones').first().json.body.nombre_cliente + '\\nServicio: ' + $('Webhook Correcciones').first().json.body.id_servicio + '\\nTécnico: ' + $('Webhook Correcciones').first().json.body.tecnico + '\\nFecha: ' + $('Webhook Correcciones').first().json.body.fecha + '\\n\\n✅ Haz clic para APROBAR:\\n' + $execution.resumeUrl + '\\n\\n✏️ Haz clic para CORREGIR nuevamente:\\nhttps://YOUR_N8N_INSTANCE.app.n8n.cloud/webhook/iniciar-correccion?resumeUrl=' + encodeURIComponent($execution.resumeUrl) + '&data=' + encodeURIComponent(JSON.stringify($('Webhook Correcciones').first().json.body)) }}",
+        "additionalFields": {
+          "attachments": {
+            "attachments": [
+              {
+                "binaryPropertyName": "=data"
+              }
+            ]
+          },
+          "ccRecipients": "={{ \n  (function() {\n    const jerarquia = {\n      'TECH_1':  'tech3@yourcompany.com',\n      'TECH_2':  'tech1@yourcompany.com',\n      'TECH_3':   'tech2@yourcompany.com',\n      'TECH_4':   '',\n      'TECH_5':     'tech4@yourcompany.com'\n    };\n    const orden = ['TECH_1', 'TECH_2', 'TECH_3', 'TECH_4', 'TECH_5'];\n    const tecnicos = ($('Webhook Correcciones').first().json.body.tecnico || '').split(',').map(t => t.trim());\n    const jefe = orden.find(t => tecnicos.includes(t));\n    const correo = jefe ? jerarquia[jefe] : '';\n    return correo || 'manager@yourcompany.com';\n  })()\n}}"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        1120
+      ],
+      "id": "d01bef0f-d630-4265-96cb-6f0525cb9a9d",
+      "name": "C - Send Approval Email",
+      "webhookId": "YOUR_WEBHOOK_ID_4",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 72,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2688,
+        1120
+      ],
+      "id": "85a5fb14-6a32-41b5-8f11-b0201d342a3f",
+      "name": "C - Wait 48h",
+      "webhookId": "YOUR_WEBHOOK_ID_3"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('C - Upload PDF to Drive').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2912,
+        1120
+      ],
+      "id": "8bf7c9ca-fa01-40fd-a777-020aabdafc60",
+      "name": "C - Download PDF Final",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "toRecipients": "={{ $('Webhook Correcciones').first().json.body.correo_cliente }}",
+        "subject": "={{ 'Reporte de Servicio Técnico - ' + $('Webhook Correcciones').first().json.body.id_servicio + ' - ' + $('Webhook Correcciones').first().json.body.nombre_cliente }}",
+        "bodyContent": "Estimado cliente,\n\nAdjunto encontrará el reporte de servicio técnico correspondiente a la visita realizada.\n\nQuedamos atentos ante cualquier inquietud.\n\nAtentamente,\nYOUR_COMPANY_NAME\nTel: 301 757 5479 \nsales@yourcompany.com",
+        "additionalFields": {
+          "attachments": {
+            "attachments": [
+              {
+                "binaryPropertyName": "data"
+              }
+            ]
+          },
+          "ccRecipients": "={{ \n  (function() {\n    const jerarquia = {\n      'TECH_1':  'tech3@yourcompany.com',\n      'TECH_2':  'tech1@yourcompany.com',\n      'TECH_3':   'tech2@yourcompany.com',\n      'TECH_4':   '',\n      'TECH_5':     'tech4@yourcompany.com'\n    };\n    const orden = ['TECH_1', 'TECH_2', 'TECH_3', 'TECH_4', 'TECH_5'];\n    const tecnicos = ($('Webhook Correcciones').first().json.body.tecnico || '').split(',').map(t => t.trim());\n    const jefe = orden.find(t => tecnicos.includes(t));\n    const correoTecnico = jefe ? jerarquia[jefe] : '';\n    const ccs = ['manager@yourcompany.com', 'sales@yourcompany.com'];\n    if (correoTecnico) ccs.push(correoTecnico);\n    return ccs.join(',');\n  })()\n}}"
+        }
+      },
+      "id": "993fff26-d39f-4edf-809e-460878ea201b",
+      "name": "Send Email1",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        1120
+      ],
+      "webhookId": "YOUR_WEBHOOK_ID_2",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('C - Find Original PDF').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        1120
+      ],
+      "id": "13047570-b761-405c-96ed-727685cf7617",
+      "name": "C - Delete Original PDF",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('Webhook Correcciones').first().json.body.id_servicio }}-{{ $('Webhook Correcciones').first().json.body.nombre_cliente }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('C - Search PDF Folder').first().json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2016,
+        1120
+      ],
+      "id": "3f00408d-3233-4f68-90a8-6fa1a1d646c1",
+      "name": "C - Upload PDF to Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const binary = $('C - Convert HTML to PDF').first().binary;\nconst json = $input.first().json;\nreturn [{ json, binary }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        1120
+      ],
+      "id": "4471ba72-b3d3-444c-b5f0-68f6e61f3b55",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const fecha = $('Webhook Correcciones').first().json.body.fecha;\nconst partes = fecha.split('/');\nconst carpetaMes = partes[2] + '-' + partes[1];\nreturn [{ json: { ...$input.first().json, carpeta_mes: carpetaMes } }];;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        1120
+      ],
+      "id": "cb888b00-fabe-4254-94e8-809ca1e35b19",
+      "name": "C - Get Folder Month"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "queryString": "={{ 'PDF ' + $('C - Get Folder Month').first().json.carpeta_mes }}",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1568,
+        1120
+      ],
+      "id": "7fa7b727-84eb-4bd5-b31d-5ce7e382f7ca",
+      "name": "C - Search PDF Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_GDRIVE_CREDENTIAL_ID",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a5d7d278-0795-4c07-a7a6-48f1b32a0546",
+              "leftValue": "={{ $json.query?.action }}",
+              "rightValue": "corregir",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6336,
+        672
+      ],
+      "id": "749ca719-68a0-4a06-ab59-5c9c7ec8d0be",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Webhook Correcciones').first().json.body.resume_url_principal + '?action=corregir' }}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        1312
+      ],
+      "id": "2c2d3b1c-4699-4e5d-8216-8050dd9368b8",
+      "name": "C - Cancel Main Wait",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "path": "iniciar-correccion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        1536
+      ],
+      "id": "44d81a75-89c6-408d-ac8b-f02e193589a0",
+      "name": "Webhook Iniciar Corrección",
+      "webhookId": "YOUR_WEBHOOK_ID_10"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.query.resumeUrl + '&action=corregir' }}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        1536
+      ],
+      "id": "ef21e148-1e0f-450d-89fb-d801e7e278bc",
+      "name": "Llamar Resume URL",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "redirect",
+        "redirectURL": "={{ 'https://YOUR_GITHUB_PAGES_URL/cao-servicios/correccion.html?data=' + encodeURIComponent($('Webhook Iniciar Corrección').first().json.query.data) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        448,
+        1536
+      ],
+      "id": "778852f2-c1d8-45a9-9924-d76693e01645",
+      "name": "Respond to Webhook",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "={{ '⚠️ RECORDATORIO DÍA 3 - Pendiente aprobar: ' + $('Build Final JSON').first().json.id_servicio + ' - ' + $('Build Final JSON').first().json.nombre_cliente }}",
+        "bodyContent": "={{ 'Han pasado 3 días. El siguiente reporte está pendiente de aprobación.\\n\\nCliente: ' + $('Build Final JSON').first().json.nombre_cliente + '\\nServicio: ' + $('Build Final JSON').first().json.id_servicio + '\\nTécnico: ' + $('Build Final JSON').first().json.tecnico + '\\nFecha: ' + $('Build Final JSON').first().json.fecha + '\\n\\n✅ Haz clic para APROBAR:\\n' + $execution.resumeUrl + '\\n\\n✏️ Haz clic para CORREGIR:\\nhttps://YOUR_N8N_INSTANCE.app.n8n.cloud/webhook/iniciar-correccion?resumeUrl=' + encodeURIComponent($execution.resumeUrl) + '&data=' + encodeURIComponent(JSON.stringify($('Build Final JSON').first().json)) }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bf99cb82-441c-4f47-91b8-df24c0674352",
+      "name": "Recordatorio Día 3",
+      "webhookId": "YOUR_WEBHOOK_ID_12",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 2,
+        "resumeUnit": "days",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "ec639272-4948-4292-8541-425d3b82c8ea",
+      "name": "Wait Día 5",
+      "webhookId": "YOUR_WEBHOOK_ID_13"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "={{ '🚨 RECORDATORIO DÍA 5 - Pendiente aprobar: ' + $('Build Final JSON').first().json.id_servicio + ' - ' + $('Build Final JSON').first().json.nombre_cliente }}",
+        "bodyContent": "={{ 'Han pasado 5 días. El siguiente reporte está pendiente de aprobación.\\n\\nCliente: ' + $('Build Final JSON').first().json.nombre_cliente + '\\nServicio: ' + $('Build Final JSON').first().json.id_servicio + '\\nTécnico: ' + $('Build Final JSON').first().json.tecnico + '\\nFecha: ' + $('Build Final JSON').first().json.fecha + '\\n\\n✅ Haz clic para APROBAR:\\n' + $execution.resumeUrl + '\\n\\n✏️ Haz clic para CORREGIR:\\nhttps://YOUR_N8N_INSTANCE.app.n8n.cloud/webhook/iniciar-correccion?resumeUrl=' + encodeURIComponent($execution.resumeUrl) + '&data=' + encodeURIComponent(JSON.stringify($('Build Final JSON').first().json)) }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "9f7891c0-4d73-42a5-a0c1-177b7a2ab68d",
+      "name": "Recordatorio Día 5",
+      "webhookId": "YOUR_WEBHOOK_ID_12",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "limitWaitTime": true,
+        "resumeAmount": 2,
+        "resumeUnit": "days",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "68329ede-4d2d-4622-bea0-b854f45df8f3",
+      "name": "Wait Día 7",
+      "webhookId": "YOUR_WEBHOOK_ID_13"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Read Servicios Sheets\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2192,
+        912
+      ],
+      "id": "3878bf65-aa3b-47b7-a312-1b50823aa979",
+      "name": "Mensaje de Error8",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Read Servicios Sheets"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        912
+      ],
+      "id": "47806d6b-976e-46d4-80ef-0ea525c118fe",
+      "name": "Stop and Error8"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Read Clientes Sheet\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2592,
+        912
+      ],
+      "id": "761ff642-813b-4c55-b674-2d87cbafdd5c",
+      "name": "Mensaje de Error9",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Read Clientes Sheet"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2768,
+        912
+      ],
+      "id": "3ae0e371-3a85-4e13-a212-dc59799c4bea",
+      "name": "Stop and Error9"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Append Cliente\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        3152,
+        928
+      ],
+      "id": "bd238e16-7308-46e2-b8e2-0d9ecd469e4d",
+      "name": "Mensaje de Error10",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Append Cliente"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3328,
+        928
+      ],
+      "id": "d8d697ce-2aa5-48b0-b56f-63c610bfc59d",
+      "name": "Stop and Error10"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Build Final JSON\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        3600,
+        1104
+      ],
+      "id": "04dce155-7fed-4e75-94be-81fa3eaf197d",
+      "name": "Mensaje de Error11",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Build Final JSON"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3776,
+        1104
+      ],
+      "id": "167f1f7c-1dc0-40b0-b6bf-72c708b35070",
+      "name": "Stop and Error11"
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en Save PDF to Drive"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        5280,
+        912
+      ],
+      "id": "3fff804f-97e4-437e-81b4-380d114c380e",
+      "name": "Stop and Error12"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: Save PDF to Drive\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\n\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        5088,
+        912
+      ],
+      "id": "e461b6ba-7683-4070-a59a-514dbd6f1ee7",
+      "name": "Mensaje de Error12",
+      "webhookId": "YOUR_WEBHOOK_ID_7",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: C - Update Servicios Sheet\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        480,
+        1328
+      ],
+      "id": "32cbebaf-70a0-4b09-8241-f0b260eaeb91",
+      "name": "Mensaje de Error13",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en C - Update Servicios Sheet"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        656,
+        1328
+      ],
+      "id": "ecd43e64-5543-41d1-81cd-8e0ec39d0de2",
+      "name": "Stop and Error13"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: C - Upload PDF to Drive\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        1376
+      ],
+      "id": "b8fdee2f-cde9-4d0b-b393-ca5734864cad",
+      "name": "Mensaje de Error14",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en C - Upload PDF to Drive"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        1376
+      ],
+      "id": "65be4e96-3b09-4834-941d-d79fdc9abc4d",
+      "name": "Stop and Error14"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: C - Delete Original PDF\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        1376
+      ],
+      "id": "6f5337c0-c314-4c4c-8f38-622bf88444e5",
+      "name": "Mensaje de Error15",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en C - Delete Original PDF"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        1376
+      ],
+      "id": "ef5f4534-5a53-4f67-b222-00a6de748286",
+      "name": "Stop and Error15"
+    },
+    {
+      "parameters": {
+        "toRecipients": "manager@yourcompany.com",
+        "subject": "⚠️ Error en flujo CAO Servicios Técnicos",
+        "bodyContent": "=Se produjo un error en el flujo de Servicios Técnicos.\n\nNodo donde falló: C - Download PDF Final\nError: {{ $json.error.message }}\nFecha: {{ $now.toISO() }}\nRevisa la ejecución en n8n para más detalles.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        3152,
+        1392
+      ],
+      "id": "8c2bbbf9-adba-4c26-a2cd-93ba68e92ae0",
+      "name": "Mensaje de Error16",
+      "webhookId": "YOUR_WEBHOOK_ID_5",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "YOUR_OUTLOOK_CREDENTIAL_ID",
+          "name": "Microsoft Outlook OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Flujo detenido por error en C - Download PDF Final"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3328,
+        1392
+      ],
+      "id": "701a5242-6b71-4e92-aa39-0e32d116be82",
+      "name": "Stop and Error16"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Raw JSON": {
+      "main": [
+        [
+          {
+            "node": "AI Data Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Data Processor": {
+      "main": [
+        [
+          {
+            "node": "Read Servicios Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Data Processor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Servicios Sheet": {
+      "main": [
+        [
+          {
+            "node": "Save Raw Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PDF HTML": {
+      "main": [
+        [
+          {
+            "node": "Convert HTML to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert HTML to PDF": {
+      "main": [
+        [
+          {
+            "node": "Save PDF to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save PDF to Drive": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Keep Raw Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Raw Sheets": {
+      "main": [
+        [
+          {
+            "node": "Search PDF Folder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate PDF HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file1": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error2": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error3": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error1": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Mensaje de Error4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error4": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error5": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error6": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error7": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Servicios Sheets": {
+      "main": [
+        [
+          {
+            "node": "Generate IDs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate IDs": {
+      "main": [
+        [
+          {
+            "node": "Read Clientes Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Clientes Sheet": {
+      "main": [
+        [
+          {
+            "node": "Cliente Existe?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente Existe?": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate CLI Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate CLI Code": {
+      "main": [
+        [
+          {
+            "node": "Append Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Cliente": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Build Final JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final JSON": {
+      "main": [
+        [
+          {
+            "node": "Save to Servicios Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Raw Folder": {
+      "main": [
+        [
+          {
+            "node": "Raw Folder Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Raw Folder Exists?": {
+      "main": [
+        [
+          {
+            "node": "Save Raw JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Raw Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Raw Folder": {
+      "main": [
+        [
+          {
+            "node": "Save Raw JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF Folder Exists?": {
+      "main": [
+        [
+          {
+            "node": "Set PDF Folder ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create PDF Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create PDF Folder": {
+      "main": [
+        [
+          {
+            "node": "Set PDF Folder ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search PDF Folder": {
+      "main": [
+        [
+          {
+            "node": "PDF Folder Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep Raw Content": {
+      "main": [
+        [
+          {
+            "node": "Search Raw Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Update Servicios Sheet": {
+      "main": [
+        [
+          {
+            "node": "C - Generate PDF HTML",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Generate PDF HTML": {
+      "main": [
+        [
+          {
+            "node": "C - Convert HTML to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Convert HTML to PDF": {
+      "main": [
+        [
+          {
+            "node": "C - Find Original PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Correcciones": {
+      "main": [
+        [
+          {
+            "node": "C - Update Servicios Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "C - Cancel Main Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Find Original PDF": {
+      "main": [
+        [
+          {
+            "node": "C - Delete Original PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Download PDF": {
+      "main": [
+        [
+          {
+            "node": "C - Send Approval Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Send Approval Email": {
+      "main": [
+        [
+          {
+            "node": "C - Wait 48h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Wait 48h": {
+      "main": [
+        [
+          {
+            "node": "C - Download PDF Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Download PDF Final": {
+      "main": [
+        [
+          {
+            "node": "Send Email1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Delete Original PDF": {
+      "main": [
+        [
+          {
+            "node": "C - Get Folder Month",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Upload PDF to Drive": {
+      "main": [
+        [
+          {
+            "node": "C - Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje de Error14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "C - Upload PDF to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Get Folder Month": {
+      "main": [
+        [
+          {
+            "node": "C - Search PDF Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "C - Search PDF Folder": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Download file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Iniciar Corrección": {
+      "main": [
+        [
+          {
+            "node": "Llamar Resume URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Llamar Resume URL": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recordatorio Día 3": {
+      "main": [
+        [
+          {
+            "node": "Wait Día 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Día 5": {
+      "main": [
+        [
+          {
+            "node": "Recordatorio Día 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recordatorio Día 5": {
+      "main": [
+        [
+          {
+            "node": "Wait Día 7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error8": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error9": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error10": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error11": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error12": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error13": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error14": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error15": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error15",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de Error16": {
+      "main": [
+        [
+          {
+            "node": "Stop and Error16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "691421f4-bb24-414d-af17-47b8de8013fb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_N8N_INSTANCE_ID"
+  },
+  "id": "Tfke3qdYUfnxXPt8",
+  "tags": []
+}
